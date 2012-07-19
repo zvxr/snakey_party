@@ -7,11 +7,12 @@ from pygame.locals import *
 FPS = 12
 WINDOWWIDTH = 640
 WINDOWHEIGHT = 480
+BUFFER = 20
 CELLSIZE = 20
 assert WINDOWWIDTH % CELLSIZE == 0, "Window width must be a multiple of cell size."
-assert WINDOWHEIGHT % CELLSIZE == 0, "Window height must be a multiple of cell size."
+assert (WINDOWHEIGHT - BUFFER) % CELLSIZE == 0, "Window height must be a multiple of cell size."
 CELLWIDTH = int(WINDOWWIDTH / CELLSIZE)
-CELLHEIGHT = int(WINDOWHEIGHT / CELLSIZE)
+CELLHEIGHT = int((WINDOWHEIGHT - BUFFER) / CELLSIZE)
 
 #colors
 WHITE = (255, 255, 255)
@@ -70,6 +71,7 @@ class Snake:
     """
     Snake class houses all information for a particular snake.
     player - if snake is the player. Player snake is also referenced directly when player snake object is created.
+    name - name of snake.
     alive - if snake is alive. Rather than delete, this allows snake to slowly shrink to the point of where it died.
     coords - a list of dictionaries containing coordinates 'x' and 'y'. A special global variable HEAD (0).
     direction - where snake moves for every game iteration ('left', 'up', etc).
@@ -80,8 +82,9 @@ class Snake:
     multipliertimer - number of game iterations multiplier stays in effect.
     score - the number of points snake has accumulated.
     """
-    def __init__(self, c=[{'x':5, 'y':5},{'x':4, 'y':5},{'x':3, 'y':5}], d=RIGHT, sc=GREEN, sb=COBALTGREEN):
+    def __init__(self, n='snakey', c=[{'x':5, 'y':5},{'x':4, 'y':5},{'x':3, 'y':5}], d=RIGHT, sc=GREEN, sb=COBALTGREEN):
         self.player = False
+        self.name = n
         self.alive = True
         self.coords = c
         # ensure snake length
@@ -93,19 +96,6 @@ class Snake:
         self.multiplier = 1
         self.multipliertimer = 0
         self.score = 0
-        
-    def updateDirection(self, direction_input):
-        """
-        This helps filter direction input to help ignore garbage direction input.
-        """
-        if direction_input == UP:
-            self.direction = UP
-        elif direction_input == DOWN:
-            self.direction = DOWN
-        elif direction_input == LEFT:
-            self.direction = LEFT
-        elif direction_input == RIGHT:
-            self.direction = RIGHT
 
     def updateScore(self, points_input):
         """
@@ -131,8 +121,8 @@ class Snake:
         """
         This returns True if snake (head) is ever out of grid parameters.
         """
-        # check if out of bounds
-        if self.coords[HEAD]['x'] == -1 or self.coords[HEAD]['x'] == CELLWIDTH or self.coords[HEAD]['y'] == -1 or self.coords[HEAD]['y'] == CELLHEIGHT:
+        # check if out of bounds -- offset on on 'y' for buffer.
+        if self.coords[HEAD]['x'] == -1 or self.coords[HEAD]['x'] == CELLWIDTH or self.coords[HEAD]['y'] == -1 + (BUFFER / CELLSIZE) or self.coords[HEAD]['y'] == CELLHEIGHT + (BUFFER / CELLSIZE):
             return True
         else:
             return False
@@ -213,6 +203,107 @@ class Snake:
             pygame.draw.rect(DISPLAYSURF, self.colorBorder, snakeSegmentRect)
             snakeInnerSegmentRect = pygame.Rect(x + 4, y + 4, CELLSIZE - 8, CELLSIZE - 8)
             pygame.draw.rect(DISPLAYSURF, self.color, snakeInnerSegmentRect)
+            
+    def drawScore(self, position, len_allsnake):
+        """
+        Responsible for drawing snake score to screen.
+        """
+        scoreSurf = BASICFONT.render('%s: %s' % (self.name, self.score), True, self.color)
+        scoreRect = scoreSurf.get_rect()
+        scoreRect.topleft = ((WINDOWWIDTH - 120) * position / len_allsnake, 1)
+        DISPLAYSURF.blit(scoreSurf, scoreRect)
+        
+        
+class Opponent(Snake):
+    """
+    Derived from Snake class, this adds functionality for determining direction.
+    """
+    def __init__(self, n='bot', c=[{'x':13, 'y':10},{'x':14, 'y':10},{'x':15, 'y':10}], d=LEFT, sc=COBALTGREEN, sb=GOLDENROD, r=20, p=10):
+        Snake.__init__(self, n, c, d, sc, sb)
+        self.avoidBoundaries = True
+        self.randomness = 20
+        self.preferSameDirection = p
+
+    def updateDirection(self, grid):
+        # all directions have value adjusted
+        direction = {LEFT:0, RIGHT:0, UP:0, DOWN:0}
+        
+        # coords of own snake head
+        x = self.coords[HEAD]['x']
+        y = self.coords[HEAD]['y']
+
+        # opposite direction kills snake
+        if self.direction == LEFT:
+            direction[RIGHT] = direction[RIGHT] - 100
+        elif self.direction == RIGHT:
+            direction[LEFT] = direction[LEFT] - 100
+        elif self.direction == UP:
+            direction[DOWN] = direction[DOWN] - 100
+        elif self.direction == DOWN:
+            direction[UP] = direction[UP]- 100
+
+        # avoid boundaries
+        if self.avoidBoundaries == True:
+            if x == 0:
+                direction[LEFT] = direction[LEFT] - 100
+            if x == CELLWIDTH - 1:
+                direction[RIGHT] = direction[RIGHT] - 100
+            if y == (BUFFER / CELLSIZE):
+                direction[UP] = direction[UP] - 100
+            if y == CELLHEIGHT + (BUFFER / CELLSIZE) - 1:
+                direction[DOWN] = direction[DOWN] - 100
+                
+        # prefer same direction
+        direction[self.direction] = direction[self.direction] + self.preferSameDirection
+
+        # avoid immediate snakes
+        if grid.has_key((x-1,y)) and (grid[(x-1,y)] == 'snake'):
+            direction[LEFT] = direction[LEFT] - 100
+        if grid.has_key((x+1,y)) and (grid[(x+1,y)] == 'snake'):
+            direction[RIGHT] = direction[RIGHT] - 100
+        if grid.has_key((x,y+1)) and (grid[(x,y+1)] == 'snake'):
+            direction[UP] = direction[UP] - 100
+        if grid.has_key((x,y-1)) and (grid[(x,y-1)] == 'snake'):
+            direction[DOWN] = direction[DOWN] - 100
+
+        # factor in randomness
+        for d in direction:
+            direction[d] = direction[d] + random.randint(0,self.randomness)
+            
+        # report if debugging
+        if DEBUG == True:
+            print self.name
+            print direction
+
+        # update snake direction to direction with highest score
+        self.direction = max(direction, key=direction.get)
+
+    def updateScore(self, points_input):
+        Snake.updateScore(self, points_input)
+
+    def updateGrowth(self, growth_input):
+        Snake.updateGrowth(self, growth_input)
+
+    def updateMultiplier(self, multiplier_input, timer_input):
+        Snake.updateMultiplier(self, multiplier_input, timer_input)
+
+    def boundsCollision(self):
+        return Snake.boundsCollision(self)
+
+    def snakeCollision(self, snake):
+        return Snake.snakeCollision(self, snake)
+
+    def fruitCollision(self, fruit):
+        return Snake.fruitCollision(self, fruit)
+
+    def move(self):
+        Snake.move(self)
+
+    def drawSnake(self):
+        Snake.drawSnake(self)
+
+    def drawScore(self, position, len_allsnake):
+        Snake.drawScore(self, position, len_allsnake)        
         
         
 class Fruit:
@@ -234,7 +325,7 @@ class Fruit:
                 y = random.randint(int(CELLHEIGHT/5), CELLHEIGHT - int(CELLHEIGHT/5) - 1)
             else:
                 x = random.randint(0, CELLWIDTH - 1)
-                y = random.randint(0, CELLHEIGHT - 1)
+                y = random.randint((BUFFER / CELLSIZE), CELLHEIGHT - 1)
             # ensure coordinates are not already occupied by fruit
             for fruit in allfruit:
                 if fruit.coords['x'] == x and fruit.coords['y'] == y:
@@ -492,6 +583,9 @@ class Tally:
 
 
 class Button():
+    """
+	A clickable button that is rendered on screen.
+	"""
     def __init__(self, text, x, y):
         self.text = text
         startSurf = BUTTONFONT.render(self.text, True, GREEN, DARKGRAY)
@@ -515,13 +609,19 @@ class Button():
 
 
 def main():
-    global FPSCLOCK, DISPLAYSURF, BASICFONT, BUTTONFONT
+    global FPSCLOCK, DISPLAYSURF, BASICFONT, BUTTONFONT, DEBUG
+    
+    # for debugging
+    if len(sys.argv) < 2:
+        DEBUG = False
+    else:
+        DEBUG = True
 
     pygame.init()
     FPSCLOCK = pygame.time.Clock()
     DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
     BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
-    BUTTONFONT = pygame.font.Font('freesansbold.ttf', 48)
+    BUTTONFONT = pygame.font.Font('freesansbold.ttf', 36)
     pygame.display.set_caption('Snakey!')
 
     showStartScreen()
@@ -533,15 +633,24 @@ def main():
 
 def runGame():
 
-    # set up globals
-    #global allsnake, allfruit, fruiteaten
+    # in game variables
     allsnake = []
     allfruit = []
     gametally = Tally(20, 10, 19)
 
     # create player snake and add to all snakes
-    player = Snake([{'x':5, 'y':5},{'x':4, 'y':5},{'x':3, 'y':5}], RIGHT, GREEN, COBALTGREEN)
+    player = Snake('snakey', [{'x':5, 'y':5},{'x':4, 'y':5},{'x':3, 'y':5}], RIGHT, GREEN, COBALTGREEN)
     allsnake.append(player)
+    
+    # test snake
+    #bakey = Opponent('bakey', [{'x':5, 'y':9},{'x':4, 'y':9},{'x':3, 'y':9}], RIGHT, OLIVEGREEN, PURPLE, 150, 5)
+    #allsnake.append(bakey)
+    
+    wakey = Opponent('wakey', [{'x':5, 'y':14},{'x':4, 'y':14},{'x':3, 'y':14}], RIGHT, PURPLE, EMERALDGREEN, 50, 5)
+    allsnake.append(wakey)
+    
+    linus = Opponent('linus', [{'x':5, 'y':18},{'x':4, 'y':18},{'x':3, 'y':18}], RIGHT, IVORY, COBALTGREEN, 0, 50)
+    allsnake.append(linus)
     
     # set beginning variables
     player.player = True
@@ -556,29 +665,44 @@ def runGame():
 
     # main game loop
     while True:
+        # event handling loop -- get player's direction choice
         stop = False
-        # event handling loop
+        
+        # get grid representation for AIs
+        grid = getGrid(allsnake, allfruit)
+        
         for event in pygame.event.get():
             if event.type == QUIT:
                 terminate()
             elif event.type == KEYDOWN and stop == False:
                 if (event.key == K_LEFT or event.key == K_a) and player.direction != RIGHT:
-                    player.updateDirection(LEFT)
+                    player.direction = LEFT
                     stop = True
                 elif (event.key == K_RIGHT or event.key == K_d) and player.direction != LEFT:
-                    player.updateDirection(RIGHT)
+                    player.direction = RIGHT
                     stop = True
                 elif (event.key == K_UP or event.key == K_w) and player.direction != DOWN:
-                    player.updateDirection(UP)
+                    player.direction = UP
                     stop = True
                 elif (event.key == K_DOWN or event.key == K_s) and player.direction != UP:
-                    player.updateDirection(DOWN)
+                    player.direction = DOWN
                     stop = True
                 elif event.key == K_ESCAPE or event.key == K_q:
                     terminate()
-
-        # check if the snake has hit boundary
+                elif event.key == K_g and DEBUG == True:
+                    debugPrintGrid(grid)
+                    
+        if DEBUG == True:
+            debugPause()
+        
+        # update all other snake's direction choice
         for snake in allsnake:
+            if snake.alive and snake.player == False:
+                snake.updateDirection(grid)
+
+        # collision detection
+        for snake in allsnake:
+            # check if the snake has hit boundary
             if snake.alive and snake.boundsCollision():
                 snake.alive = False
             # check if snake has hit another snake
@@ -709,7 +833,12 @@ def runGame():
             fruit.drawFruit()
         for snake in allsnake:
             snake.drawSnake()
-        drawScore(player.score)
+            
+        # print scores
+        position = 1
+        for snake in allsnake:
+            snake.drawScore(position, len(allsnake))
+            position = position + 1
         pygame.display.update()
         FPSCLOCK.tick(currentspeed)
 
@@ -842,25 +971,52 @@ def showGameOverScreen():
             return
 
 
-def drawScore(score):
-    scoreSurf = BASICFONT.render('Score: %s' % (score), True, WHITE)
-    scoreRect = scoreSurf.get_rect()
-    scoreRect.topleft = (WINDOWWIDTH - 120, 10)
-    DISPLAYSURF.blit(scoreSurf, scoreRect)
+def getGrid(allsnake, allfruit):
+    # refresh grid, dictionary representation of playing board used by AI
+    grid = {(x,y):0 for x in range(CELLWIDTH) for y in range(CELLHEIGHT + (BUFFER / CELLSIZE))}
+    
+    # add snakes to grid
+    for snake in allsnake:
+        for snakebody in snake.coords:
+            grid[(snakebody['x'], snakebody['y'])] = 'snake'
+            
+    return grid
 
 
-def drawPoints(score, x=1, y=1, color=WHITE):
-    scoreSurf = BASICFONT.render('%s!' % (score), True, color)
+def drawText(text, value, x=1, y=1, color=WHITE):
+    scoreSurf = BASICFONT.render('%s %s' % text score, True, color)
     scoreRect = scoreSurf.get_rect()
     scoreRect.topleft = (x, y)
     DISPLAYSURF.blit(scoreSurf, scoreRect)
 
 
+
 def drawGrid():
     for x in range(0, WINDOWWIDTH, CELLSIZE): # draw vertical lines
-        pygame.draw.line(DISPLAYSURF, DARKGRAY, (x, 0), (x, WINDOWHEIGHT))
-    for y in range(0, WINDOWHEIGHT, CELLSIZE): # draw horizontal lines
-        pygame.draw.line(DISPLAYSURF, DARKGRAY, (0, y), (WINDOWWIDTH, y))
+        pygame.draw.line(DISPLAYSURF, DARKGRAY, (x, BUFFER), (x, WINDOWHEIGHT))
+    for y in range(0, (WINDOWHEIGHT - BUFFER), CELLSIZE): # draw horizontal lines
+        pygame.draw.line(DISPLAYSURF, DARKGRAY, (BUFFER, y), (WINDOWWIDTH, y))
+
+
+def debugPause():
+    while True:
+        if checkForKeyPress():
+            return
+            
+			
+def debugPrintGrid(grid):
+    x = 0
+    y = 0
+    line = ""
+    while grid.has_key((0,y)):
+        if grid.has_key((x,y)):
+            line = line + str(grid[(x,y)])[0]
+            x = x + 1
+        else:
+            print line
+            line = ""
+            y = y + 1
+            x = 0
 
 
 if __name__ == '__main__':
