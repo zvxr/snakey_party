@@ -222,7 +222,7 @@ class Opponent(Snake):
     def __init__(self, n='bot', c=[{'x':13, 'y':10},{'x':14, 'y':10},{'x':15, 'y':10}], d=LEFT, sc=COBALTGREEN, sb=GOLDENROD, r=20, p=10):
         Snake.__init__(self, n, c, d, sc, sb)
         self.avoidBoundaries = True
-        self.randomness = 20
+        self.randomness = r
         self.preferSameDirection = p
 
     def updateDirection(self, grid):
