@@ -51,6 +51,10 @@ DOWN = 'down'
 LEFT = 'left'
 RIGHT = 'right'
 
+WIGGLES = 'wiggles'
+GIGGLES = 'giggles'
+LINUS = 'linus'
+
 HEAD = 0 #index of snake's head
 
 # fruit time remains on screen
@@ -629,35 +633,81 @@ def main():
     DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
     BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
     BUTTONFONT = pygame.font.Font('freesansbold.ttf', 36)
-    pygame.display.set_caption('Snakey!')
+    pygame.display.set_caption('Snakey Party')
 
-    showStartScreen()
-    
-    while True:
-        runGame()
-        showGameOverScreen()
-        
+    #showStartScreen()
 
-def runGame():
+    titleFont = pygame.font.Font('freesansbold.ttf', 64)
+    titleSurf = titleFont.render('Snakey Party', True, WHITE, FORESTGREEN)
+    titleRect = titleSurf.get_rect()
+    titleRect.center = (WINDOWWIDTH / 2, WINDOWHEIGHT * 1/6)
+
+    arcadebutton = Button('(a)rcade mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/6)
+    duelbutton = Button('(d)uel mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 4/6)
+    instructbutton = Button('(i)nstructions', WINDOWWIDTH / 2, WINDOWHEIGHT * 5/6)
+
+    while True: ### need to update this
+
+        DISPLAYSURF.fill(BGCOLOR)
+        DISPLAYSURF.blit(titleSurf, titleRect)
+        arcadebutton.display()
+        duelbutton.display()
+        instructbutton.display()
+
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                terminate()
+            elif event.type == MOUSEBUTTONDOWN:
+                mouse = pygame.mouse.get_pos()
+                if arcadebutton.pressed(mouse):
+                    pygame.event.get()
+                    runGame()
+                    showGameOverScreen()
+                elif duelbutton.pressed(mouse):
+                    pygame.event.get()
+                    runGame(10, 10, 9, [LINUS], True)
+                    showGameOverScreen()
+                elif instructbutton.pressed(mouse):
+                    showInstructScreen()
+            elif event.type == KEYDOWN:
+                if event.key == K_a:
+                    pygame.event.get()
+                    runGame()
+                    showGameOverScreen()
+                elif event.key == K_d:
+                    pygame.event.get()
+                    runGame(10, 10, 9, [LINUS], True)
+                    showGameOverScreen()
+                elif event.key == K_i:
+                    showInstructScreen()
+                elif event.key == K_ESCAPE or event.key == K_q:
+                    terminate()
+
+        pygame.display.update()
+        FPSCLOCK.tick(FPS)
+		
+
+def runGame(speedTrigger=20, bonusTrigger=10, easyTrigger=19, opponents=[], twoApples=False):
 
     # in game variables
     allsnake = []
     allfruit = []
-    gametally = Tally(20, 10, 19)
+    gametally = Tally(speedTrigger, bonusTrigger, easyTrigger)
 
     # create player snake and add to all snakes
     player = Snake('snakey', [{'x':5, 'y':5},{'x':4, 'y':5},{'x':3, 'y':5}], RIGHT, GREEN, COBALTGREEN)
     allsnake.append(player)
     
-    # test snake
-    #bakey = Opponent('bakey', [{'x':5, 'y':9},{'x':4, 'y':9},{'x':3, 'y':9}], RIGHT, OLIVEGREEN, PURPLE, 150, 5)
-    #allsnake.append(bakey)
-    
-    wakey = Opponent('wakey', [{'x':5, 'y':14},{'x':4, 'y':14},{'x':3, 'y':14}], RIGHT, PURPLE, EMERALDGREEN, 50, 5)
-    allsnake.append(wakey)
-    
-    linus = Opponent('linus', [{'x':5, 'y':18},{'x':4, 'y':18},{'x':3, 'y':18}], RIGHT, IVORY, COBALTGREEN, 0, 50)
-    allsnake.append(linus)
+    for snake in opponents:
+        if snake == WIGGLES:
+            bakey = Opponent(WIGGLES, [{'x':5, 'y':9},{'x':4, 'y':9},{'x':3, 'y':9}], RIGHT, OLIVEGREEN, PURPLE, 150, 5)
+            allsnake.append(bakey)
+        elif snake == GIGGLES:
+            wakey = Opponent(GIGGLES, [{'x':5, 'y':14},{'x':4, 'y':14},{'x':3, 'y':14}], RIGHT, PURPLE, EMERALDGREEN, 50, 5)
+            allsnake.append(wakey)
+        elif snake == LINUS:
+            linus = Opponent(LINUS, [{'x':5, 'y':18},{'x':4, 'y':18},{'x':3, 'y':18}], RIGHT, IVORY, COBALTGREEN, 0, 50)
+            allsnake.append(linus)
     
     # set beginning variables
     player.player = True
@@ -670,7 +720,12 @@ def runGame():
     # create initial fruit
     a = Apple(allfruit, allsnake, gametally)
     allfruit.append(a)
-
+    
+    # add second apple if applicable
+    if twoApples:
+        b = Apple(allfruit, allsnake, gametally)
+        allfruit.append(b)
+    
     # main game loop
     while True:
         # event handling loop -- get player's direction choice
@@ -891,6 +946,7 @@ def checkForKeyPress():
     return keyUpEvents[0].key
 
 
+# Archaic 
 def showStartScreen():
     titleFont = pygame.font.Font('freesansbold.ttf', 100)
     titleSurf1 = titleFont.render('Snakey!', True, WHITE, FORESTGREEN)
