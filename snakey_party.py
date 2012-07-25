@@ -632,7 +632,7 @@ def main():
     FPSCLOCK = pygame.time.Clock()
     DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
     BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
-    BUTTONFONT = pygame.font.Font('freesansbold.ttf', 36)
+    BUTTONFONT = pygame.font.Font('freesansbold.ttf', 30)
     pygame.display.set_caption('Snakey Party')
 
     #showStartScreen()
@@ -640,11 +640,12 @@ def main():
     titleFont = pygame.font.Font('freesansbold.ttf', 64)
     titleSurf = titleFont.render('Snakey Party', True, WHITE, FORESTGREEN)
     titleRect = titleSurf.get_rect()
-    titleRect.center = (WINDOWWIDTH / 2, WINDOWHEIGHT * 1/6)
+    titleRect.center = (WINDOWWIDTH / 2, WINDOWHEIGHT * 2/8)
 
-    arcadebutton = Button('(a)rcade mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/6)
-    duelbutton = Button('(d)uel mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 4/6)
-    instructbutton = Button('(i)nstructions', WINDOWWIDTH / 2, WINDOWHEIGHT * 5/6)
+    arcadebutton = Button('(a)rcade mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/8)
+    duelbutton = Button('(d)uel mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 4/8)
+    partybutton = Button('(p)arty mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 5/8)
+    instructbutton = Button('(i)nstructions', WINDOWWIDTH / 2, WINDOWHEIGHT * 6/8)
 
     while True: ### need to update this
 
@@ -652,6 +653,7 @@ def main():
         DISPLAYSURF.blit(titleSurf, titleRect)
         arcadebutton.display()
         duelbutton.display()
+        partybutton.display()
         instructbutton.display()
 
         for event in pygame.event.get():
@@ -667,6 +669,10 @@ def main():
                     pygame.event.get()
                     runGame(10, 10, 9, [LINUS], True)
                     showGameOverScreen()
+                elif partybutton.pressed(mouse):
+                    pygame.event.get()
+                    runGame(25, 5, 0, [LINUS, WIGGLES, GIGGLES], True)
+                    showGameOverScreen()
                 elif instructbutton.pressed(mouse):
                     showInstructScreen()
             elif event.type == KEYDOWN:
@@ -678,6 +684,10 @@ def main():
                     pygame.event.get()
                     runGame(10, 10, 9, [LINUS], True)
                     showGameOverScreen()
+                elif event.key == K_p:
+                    pygame.event.get()
+                    runGame(25, 5, 0, [LINUS, WIGGLES, GIGGLES], True)
+                    showGameOverScreen()
                 elif event.key == K_i:
                     showInstructScreen()
                 elif event.key == K_ESCAPE or event.key == K_q:
@@ -685,7 +695,7 @@ def main():
 
         pygame.display.update()
         FPSCLOCK.tick(FPS)
-		
+        
 
 def runGame(speedTrigger=20, bonusTrigger=10, easyTrigger=19, opponents=[], twoApples=False):
 
@@ -946,59 +956,6 @@ def checkForKeyPress():
     return keyUpEvents[0].key
 
 
-# Archaic 
-def showStartScreen():
-    titleFont = pygame.font.Font('freesansbold.ttf', 100)
-    titleSurf1 = titleFont.render('Snakey!', True, WHITE, FORESTGREEN)
-    titleSurf2 = titleFont.render('Snakey!', True, GREEN)
-
-    degrees1 = 0
-    degrees2 = 0
-
-    startbutton = Button('(s)tart game', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/5)
-    instructbutton = Button('(i)nstructions', WINDOWWIDTH / 2, WINDOWHEIGHT * 4/5)
-
-    while True:
-
-        DISPLAYSURF.fill(BGCOLOR)
-        rotatedSurf1 = pygame.transform.rotate(titleSurf1, degrees1)
-        rotatedRect1 = rotatedSurf1.get_rect()
-        rotatedRect1.center = (WINDOWWIDTH / 2, WINDOWHEIGHT / 2)
-        DISPLAYSURF.blit(rotatedSurf1, rotatedRect1)
-
-        rotatedSurf2 = pygame.transform.rotate(titleSurf2, degrees2)
-        rotatedRect2 = rotatedSurf2.get_rect()
-        rotatedRect2.center = (WINDOWWIDTH / 2, WINDOWHEIGHT / 2)
-        DISPLAYSURF.blit(rotatedSurf2, rotatedRect2)
-
-        startbutton.display()
-        instructbutton.display()
-
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                terminate()
-            elif event.type == MOUSEBUTTONDOWN:
-                mouse = pygame.mouse.get_pos()
-                if startbutton.pressed(mouse):
-                    pygame.event.get()
-                    return
-                elif instructbutton.pressed(mouse):
-                    showInstructScreen()
-            elif event.type == KEYDOWN:
-                if event.key == K_s:
-                    pygame.event.get()
-                    return
-                elif event.key == K_i:
-                    showInstructScreen()
-                elif event.key == K_ESCAPE or event.key == K_q:
-                    terminate()
-
-        pygame.display.update()
-        FPSCLOCK.tick(FPS)
-        degrees1 += 3 # rotate by 3 degrees each frame
-        degrees2 += 7 # rotate by 7 degrees each frame
-
-
 def showInstructScreen():
 
     endinstructbutton = Button('(e)xit', WINDOWWIDTH / 2, WINDOWHEIGHT - 40)
@@ -1037,12 +994,13 @@ def terminate():
 def showGameStats(allsnake):
     position = 1
     for snake in allsnake:
-        drawText('score:', snake.score, getPosition(position, allsnake), 30, snake.color)
-        drawText('apples:', snake.fruitEaten['apple'], getPosition(position, allsnake), 50, RED)
-        drawText('poison:', snake.fruitEaten['poison'], getPosition(position, allsnake), 70, GREEN)
-        drawText('oranges:', snake.fruitEaten['orange'], getPosition(position, allsnake), 90, ORANGE)
-        drawText('raspberries:', snake.fruitEaten['raspberry'], getPosition(position, allsnake), 110, PURPLE)
-        drawText('blueberries:', snake.fruitEaten['blueberry'], getPosition(position, allsnake), 130, BLUE)
+        drawText('alive:', snake.alive, getPosition(position, allsnake), 25, snake.color)
+        drawText('score:', snake.score, getPosition(position, allsnake), 45, snake.color)
+        drawText('apples:', snake.fruitEaten['apple'], getPosition(position, allsnake), 65, RED)
+        drawText('poison:', snake.fruitEaten['poison'], getPosition(position, allsnake), 85, GREEN)
+        drawText('oranges:', snake.fruitEaten['orange'], getPosition(position, allsnake), 105, ORANGE)
+        drawText('raspberries:', snake.fruitEaten['raspberry'], getPosition(position, allsnake), 125, PURPLE)
+        drawText('blueberries:', snake.fruitEaten['blueberry'], getPosition(position, allsnake), 145, BLUE)
         position = position + 1
 
     drawPressKeyMsg()
@@ -1090,8 +1048,8 @@ def getGrid(allsnake, allfruit):
     return grid
 
 
-def drawText(text, value, x=1, y=1, color=WHITE):
-    scoreSurf = BASICFONT.render('%s %s' % (text, value), True, color)
+def drawText(text, value, x=1, y=1, color=WHITE, background=BLACK):
+    scoreSurf = BASICFONT.render('%s %s' % (text, value), True, color, background)
     scoreRect = scoreSurf.get_rect()
     scoreRect.topleft = (x, y)
     DISPLAYSURF.blit(scoreSurf, scoreRect)
