@@ -492,6 +492,9 @@ class Blueberry(Fruit):
 
 
 class Lemon(Fruit):
+    """
+	TBD... currently worth 1000 points.
+	"""
     def __init__(self, allfruit, allsnake, gametally):
         self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, gametally)
         self.timer = random.randint(LEMONTIMER[0], LEMONTIMER[1])
@@ -723,13 +726,13 @@ def runGame(speedTrigger=20, bonusTrigger=10, easyTrigger=19, opponents=[], twoA
     
     for snake in opponents:
         if snake == WIGGLES:
-            bakey = Opponent(WIGGLES, [{'x':5, 'y':9},{'x':4, 'y':9},{'x':3, 'y':9}], RIGHT, OLIVEGREEN, PURPLE, 150, 5)
+            bakey = Opponent(WIGGLES, [{'x':5, 'y':9},{'x':4, 'y':9},{'x':3, 'y':9}], RIGHT, OLIVEGREEN, PURPLE, 20, 5)
             allsnake.append(bakey)
         elif snake == GIGGLES:
-            wakey = Opponent(GIGGLES, [{'x':5, 'y':14},{'x':4, 'y':14},{'x':3, 'y':14}], RIGHT, PURPLE, EMERALDGREEN, 50, 5)
+            wakey = Opponent(GIGGLES, [{'x':5, 'y':14},{'x':4, 'y':14},{'x':3, 'y':14}], RIGHT, PURPLE, EMERALDGREEN, 10, 10)
             allsnake.append(wakey)
         elif snake == LINUS:
-            linus = Opponent(LINUS, [{'x':5, 'y':18},{'x':4, 'y':18},{'x':3, 'y':18}], RIGHT, IVORY, COBALTGREEN, 0, 5)
+            linus = Opponent(LINUS, [{'x':5, 'y':18},{'x':4, 'y':18},{'x':3, 'y':18}], RIGHT, IVORY, COBALTGREEN, 5, 20)
             allsnake.append(linus)
     
     # set beginning variables
