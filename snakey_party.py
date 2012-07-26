@@ -93,7 +93,9 @@ class Snake:
         assert len(self.coords) > 1
         self.direction = d
         self.color = sc
+        self.colorCurrent = self.color
         self.colorBorder = sb
+        self.colorBorderCurrent = self.colorBorder
         self.growth = 0
         self.multiplier = 1
         self.multipliertimer = 0
@@ -203,15 +205,15 @@ class Snake:
             x = coord['x'] * CELLSIZE
             y = coord['y'] * CELLSIZE
             snakeSegmentRect = pygame.Rect(x, y, CELLSIZE, CELLSIZE)
-            pygame.draw.rect(DISPLAYSURF, self.colorBorder, snakeSegmentRect)
+            pygame.draw.rect(DISPLAYSURF, self.colorBorderCurrent, snakeSegmentRect)
             snakeInnerSegmentRect = pygame.Rect(x + 4, y + 4, CELLSIZE - 8, CELLSIZE - 8)
-            pygame.draw.rect(DISPLAYSURF, self.color, snakeInnerSegmentRect)
+            pygame.draw.rect(DISPLAYSURF, self.colorCurrent, snakeInnerSegmentRect)
             
     def drawScore(self, position, allsnake):
         """
         Responsible for drawing snake score to screen.
         """
-        scoreSurf = BASICFONT.render('%s: %s' % (self.name, self.score), True, self.color)
+        scoreSurf = BASICFONT.render('%s: %s' % (self.name, self.score), True, self.colorCurrent)
         scoreRect = scoreSurf.get_rect()
         scoreRect.topleft = (getPosition(position, allsnake), 1)
         DISPLAYSURF.blit(scoreSurf, scoreRect)
@@ -493,8 +495,8 @@ class Blueberry(Fruit):
 
 class Lemon(Fruit):
     """
-	TBD... currently worth 1000 points.
-	"""
+    TBD... currently worth 1000 points.
+    """
     def __init__(self, allfruit, allsnake, gametally):
         self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, gametally)
         self.timer = random.randint(LEMONTIMER[0], LEMONTIMER[1])
@@ -916,20 +918,25 @@ def runGame(speedTrigger=20, bonusTrigger=10, easyTrigger=19, opponents=[], twoA
         for snake in allsnake:
             if snake.multipliertimer > 0:
                 snake.multipliertimer = snake.multipliertimer - 1
-                snake.colorBorder = PURPLE
+                snake.colorBorderCurrent = PURPLE
             else:
+                # make sure multiplier is 1, color is normal
                 snake.multiplier = 1
+                snake.colorBorderCurrent = snake.colorBorder
 
         # check slow and adjust color and fps as needed
         if slowtimer > 0:
             slowtimer = slowtimer - 1
             for snake in allsnake:
-                snake.color = BLUE
+                snake.colorCurrent = BLUE
             if currentspeed > 8:
                 currentspeed = currentspeed - 1
         else:
             if currentspeed < basespeed:
                 currentspeed = currentspeed + 1
+            # make sure color is normal
+            for snake in allsnake:
+                snake.colorCurrent = snake.color
 
         # update timers on fruits, remove if necessary
         for fruit in allfruit:
@@ -1098,8 +1105,8 @@ def drawText(text, value, x=1, y=1, color=WHITE, background=BLACK):
 def drawGrid():
     for x in range(0, WINDOWWIDTH, CELLSIZE): # draw vertical lines
         pygame.draw.line(DISPLAYSURF, DARKGRAY, (x, BUFFER), (x, WINDOWHEIGHT))
-    for y in range(0, (WINDOWHEIGHT - BUFFER), CELLSIZE): # draw horizontal lines
-        pygame.draw.line(DISPLAYSURF, DARKGRAY, (BUFFER, y), (WINDOWWIDTH, y))
+    for y in range(BUFFER, WINDOWHEIGHT, CELLSIZE): # draw horizontal lines
+        pygame.draw.line(DISPLAYSURF, DARKGRAY, (0, y), (WINDOWWIDTH, y))
 
 
 def debugPause():
