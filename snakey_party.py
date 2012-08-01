@@ -479,7 +479,7 @@ class Blueberry(Fruit):
         self.timer = random.randint(BLUEBERRYTIMER[0], BLUEBERRYTIMER[1])
         self.color = BLUE
         self.score = 100
-        self.slowtimer = 120
+        self.slowtimer = 80
 
     def isEaten(self, snake, gametally):
         snake.fruitEaten['blueberry'] = snake.fruitEaten['blueberry'] + 1
@@ -653,8 +653,6 @@ def main():
     BUTTONFONT = pygame.font.Font('freesansbold.ttf', 30)
     pygame.display.set_caption('Snakey Party')
 
-    #showStartScreen()
-
     titleFont = pygame.font.Font('freesansbold.ttf', 64)
     titleSurf = titleFont.render('Snakey Party', True, WHITE, FORESTGREEN)
     titleRect = titleSurf.get_rect()
@@ -685,8 +683,11 @@ def main():
                     showGameOverScreen()
                 elif duelbutton.pressed(mouse):
                     pygame.event.get()
-                    runGame(10, 10, 9, [LINUS], True)
-                    showGameOverScreen()
+                    opponent = False
+                    opponent = showSelectOpponentScreen()
+                    if opponent != False:
+                        runGame(10, 10, 9, opponent, True)
+                        showGameOverScreen()
                 elif partybutton.pressed(mouse):
                     pygame.event.get()
                     runGame(25, 5, 0, [LINUS, WIGGLES, GIGGLES], True)
@@ -700,7 +701,11 @@ def main():
                     showGameOverScreen()
                 elif event.key == K_d:
                     pygame.event.get()
-                    runGame(10, 10, 9, [LINUS], True)
+                    opponent = False
+                    opponent = showSelectOpponentScreen()
+                    if opponent != False:
+                        runGame(10, 10, 9, opponent, True)
+                        showGameOverScreen()
                     showGameOverScreen()
                 elif event.key == K_p:
                     pygame.event.get()
@@ -728,13 +733,13 @@ def runGame(speedTrigger=20, bonusTrigger=10, easyTrigger=19, opponents=[], twoA
     
     for snake in opponents:
         if snake == WIGGLES:
-            bakey = Opponent(WIGGLES, [{'x':5, 'y':9},{'x':4, 'y':9},{'x':3, 'y':9}], RIGHT, OLIVEGREEN, PURPLE, 20, 5)
+            bakey = Opponent(WIGGLES, [{'x':CELLWIDTH-5, 'y':5},{'x':CELLWIDTH-4, 'y':5},{'x':CELLWIDTH-3, 'y':5}], LEFT, OLIVEGREEN, PURPLE, 20, 5)
             allsnake.append(bakey)
         elif snake == GIGGLES:
-            wakey = Opponent(GIGGLES, [{'x':5, 'y':14},{'x':4, 'y':14},{'x':3, 'y':14}], RIGHT, PURPLE, EMERALDGREEN, 10, 10)
+            wakey = Opponent(GIGGLES, [{'x':5, 'y':CELLHEIGHT-5},{'x':4, 'y':CELLHEIGHT-5},{'x':3, 'y':CELLHEIGHT-5}], RIGHT, PURPLE, EMERALDGREEN, 10, 10)
             allsnake.append(wakey)
         elif snake == LINUS:
-            linus = Opponent(LINUS, [{'x':5, 'y':18},{'x':4, 'y':18},{'x':3, 'y':18}], RIGHT, IVORY, COBALTGREEN, 5, 20)
+            linus = Opponent(LINUS, [{'x':CELLWIDTH-5, 'y':CELLHEIGHT-5},{'x':CELLWIDTH-4, 'y':CELLHEIGHT-5},{'x':CELLWIDTH-3, 'y':CELLHEIGHT-5}], LEFT, IVORY, COBALTGREEN, 5, 20)
             allsnake.append(linus)
     
     # set beginning variables
@@ -979,10 +984,66 @@ def checkForKeyPress():
     return keyUpEvents[0].key
 
 
+def showSelectOpponentScreen():
+    """
+    Blits opponent select onto screen. Returns opponent selected.
+    """
+    opponentlinusbutton = Button('(l)inus', WINDOWWIDTH / 2, WINDOWHEIGHT * 2/6)
+    opponentwigglesbutton = Button('(w)iggles', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/6)
+    opponentgigglesbutton = Button('(g)iggles', WINDOWWIDTH / 2, WINDOWHEIGHT * 4/6)
+    cancelbutton = Button('(e)xit', WINDOWWIDTH / 2, WINDOWHEIGHT * 5/6)
+
+    while True:
+
+        choiceFont = pygame.font.Font('freesansbold.ttf', 36)
+        choiceSurf = choiceFont.render('Choose Opponent:', True, WHITE, FORESTGREEN)
+        choiceRect = choiceSurf.get_rect()
+
+        DISPLAYSURF.fill(BGCOLOR)
+        DISPLAYSURF.blit(choiceSurf, choiceRect)
+
+        opponentlinusbutton.display()
+        opponentwigglesbutton.display()
+        opponentgigglesbutton.display()
+        cancelbutton.display()
+
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                terminate()
+            elif event.type == MOUSEBUTTONDOWN:
+                mouse = pygame.mouse.get_pos()
+                if opponentlinusbutton.pressed(mouse):
+                    pygame.event.get()
+                    return [LINUS]
+                elif opponentwigglesbutton.pressed(mouse):
+                    pygame.event.get()
+                    return [WIGGLES]
+                elif opponentgigglesbutton.pressed(mouse):
+                    pygame.event.get()
+                    return [GIGGLES]
+            elif event.type == KEYDOWN:
+                if event.key == K_l:
+                    pygame.event.get()
+                    return [LINUS]
+                elif event.key == K_w:
+                    pygame.event.get()
+                    return [WIGGLES]
+                elif event.key == K_g:
+                    pygame.event.get()
+                    return [GIGGLES]
+                elif event.key == K_e:
+                    pygame.event.get()
+                    return False
+                elif event.key == K_ESCAPE or event.key == K_q:
+                    terminate()
+
+        pygame.display.update()
+
+
 def showInstructScreen():
     """
-     Blits instructions onto screen. Returns when exit button clicked / key pressed.
-     """
+	Blits instructions onto screen. Returns when exit button clicked / key pressed.
+	"""
     endinstructbutton = Button('(e)xit', WINDOWWIDTH / 2, WINDOWHEIGHT - 40)
 
     while True:
@@ -1013,17 +1074,17 @@ def showInstructScreen():
 
 def terminate():
     """
-     Clean exit from pygame.
-     """
+	Clean exit from pygame.
+	"""
     pygame.quit()
     sys.exit()
     
 
 def showGameStats(allsnake):
     """
-     Displays game stats for all snakes at end of game.
-     Returns when any key pressed.
-     """
+	Displays game stats for all snakes at end of game.
+	Returns when any key pressed.
+	"""
     position = 1
     for snake in allsnake:
         drawText('alive:', snake.alive, getPosition(position, allsnake), 25, snake.color)
@@ -1037,7 +1098,7 @@ def showGameStats(allsnake):
 
     drawPressKeyMsg()
     pygame.display.update()
-    pygame.time.wait(500)
+    pygame.time.wait(200)
     checkForKeyPress() # clear out any key presses in the event queue
 
     while True:
@@ -1048,9 +1109,9 @@ def showGameStats(allsnake):
 
 def showGameOverScreen():
     """
-     Displays 'Game Over' message.
+	Displays 'Game Over' message.
     Returns when any key pressed.
-     """
+	"""
     gameOverFont = pygame.font.Font('freesansbold.ttf', 120)
     gameSurf = gameOverFont.render('Game', True, WHITE)
     overSurf = gameOverFont.render('Over', True, WHITE)
@@ -1063,7 +1124,7 @@ def showGameOverScreen():
     DISPLAYSURF.blit(overSurf, overRect)
     drawPressKeyMsg()
     pygame.display.update()
-    pygame.time.wait(500)
+    pygame.time.wait(200)
     checkForKeyPress() # clear out any key presses in the event queue
 
     while True:
@@ -1074,10 +1135,10 @@ def showGameOverScreen():
 
 def getGrid(allsnake, allfruit):
     """
-     Returns dictionary representation of all snakes and fruits on screen.
-     Coordinates are entered as tuple (x,y).
-     Used by AI when choosing best path.
-     """
+	Returns dictionary representation of all snakes and fruits on screen.
+	Coordinates are entered as tuple (x,y).
+	Used by AI when choosing best path.
+	"""
     # refresh grid, dictionary representation of playing board used by AI
     grid = {(x,y):0 for x in range(CELLWIDTH) for y in range(CELLHEIGHT + (BUFFER / CELLSIZE))}
     
