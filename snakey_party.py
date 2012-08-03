@@ -333,14 +333,14 @@ class Fruit:
     def __init__(self):
         self.timer = 0
 
-    def getRandomLocation(self, allfruit, allsnake, gametally):
+    def getRandomLocation(self, allfruit, allsnake, game):
         """
         Returns random coordinates (for fruit to be placed). Ensures that coordinates are not occupied by fruit or snake head.
         Will keep fruit away from edges (outside 20%) if in an "easy mode" determined in Tally object.
         """
         while True:
             conflict = False
-            if gametally.checkEasyTrigger():
+            if game.checkEasyTrigger():
                 x = random.randint(int(CELLWIDTH/5), CELLWIDTH - int(CELLWIDTH/5) - 1)
                 y = random.randint(int(CELLHEIGHT/5), CELLHEIGHT - int(CELLHEIGHT/5) - 1)
             else:
@@ -382,15 +382,15 @@ class Apple(Fruit):
     Apples are a unique fruit in that they never leave the screen and once one is eaten, it is always replaced with another.
     They also add points and one growth
     """
-    def __init__(self, allfruit, allsnake, gametally):
-        self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, gametally)
+    def __init__(self, allfruit, allsnake, game):
+        self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, game)
         self.color = RED
         self.points = 10
         self.growth = 1
 
-    def isEaten(self, snake, gametally):
+    def isEaten(self, snake, game):
         snake.fruitEaten['apple'] = snake.fruitEaten['apple'] + 1
-        gametally.fruitEaten['apple'] = gametally.fruitEaten['apple'] + 1
+        game.fruitEaten['apple'] = game.fruitEaten['apple'] + 1
         snake.updateScore(self.points)
         snake.updateGrowth(self.growth)
 
@@ -402,16 +402,16 @@ class Poison(Fruit):
     """
     Poison will shorten a snake (by adding a negative growth value) and reduce points.
     """
-    def __init__(self, allfruit, allsnake, gametally):
-        self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, gametally)
+    def __init__(self, allfruit, allsnake, game):
+        self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, game)
         self.timer = random.randint(POISONTIMER[0], POISONTIMER[1])
         self.color = GREEN
         self.points = -25
         self.growth = -3
 
-    def isEaten(self, snake, gametally):
+    def isEaten(self, snake, game):
         snake.fruitEaten['poison'] = snake.fruitEaten['poison'] + 1
-        gametally.fruitEaten['poison'] = gametally.fruitEaten['poison'] + 1
+        game.fruitEaten['poison'] = game.fruitEaten['poison'] + 1
         snake.updateScore(self.points)
         snake.updateGrowth(self.growth)
 
@@ -426,16 +426,16 @@ class Orange(Fruit):
     """
     Orange will grow snake substantially and are worth points.
     """
-    def __init__(self, allfruit, allsnake, gametally):
-        self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, gametally)
+    def __init__(self, allfruit, allsnake, game):
+        self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, game)
         self.timer = random.randint(ORANGETIMER[0], ORANGETIMER[1])
         self.color = ORANGE
         self.points = 50
         self.growth = 3
 
-    def isEaten(self, snake, gametally):
+    def isEaten(self, snake, game):
         snake.fruitEaten['orange'] = snake.fruitEaten['orange'] + 1
-        gametally.fruitEaten['orange'] = gametally.fruitEaten['orange'] + 1
+        game.fruitEaten['orange'] = game.fruitEaten['orange'] + 1
         snake.updateScore(self.points)
         snake.updateGrowth(self.growth)
 
@@ -450,16 +450,16 @@ class Raspberry(Fruit):
     """
     Raspberry will set snake's multiplier to two for a period of time.
     """
-    def __init__(self, allfruit, allsnake, gametally):
-        self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, gametally)
+    def __init__(self, allfruit, allsnake, game):
+        self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, game)
         self.timer = random.randint(RASPBERRYTIMER[0], RASPBERRYTIMER[1])
         self.color = PURPLE
         self.multiplier = 2
         self.multipliertimer = 100
 
-    def isEaten(self, snake, gametally):
+    def isEaten(self, snake, game):
         snake.fruitEaten['raspberry'] = snake.fruitEaten['raspberry'] + 1
-        gametally.fruitEaten['raspberry'] = gametally.fruitEaten['raspberry'] + 1
+        game.fruitEaten['raspberry'] = game.fruitEaten['raspberry'] + 1
         snake.updateMultiplier(self.multiplier, self.multipliertimer)
 
     def updateTimer(self):
@@ -474,16 +474,16 @@ class Blueberry(Fruit):
     Blueberry will reduce the frame rate (slowing down game iterations) for a period of time.
     It is also worth a lot of points.
     """
-    def __init__(self, allfruit, allsnake, gametally):
-        self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, gametally)
+    def __init__(self, allfruit, allsnake, game):
+        self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, game)
         self.timer = random.randint(BLUEBERRYTIMER[0], BLUEBERRYTIMER[1])
         self.color = BLUE
         self.score = 100
         self.slowtimer = 80
 
-    def isEaten(self, snake, gametally):
+    def isEaten(self, snake, game):
         snake.fruitEaten['blueberry'] = snake.fruitEaten['blueberry'] + 1
-        gametally.fruitEaten['blueberry'] = gametally.fruitEaten['blueberry'] + 1
+        game.fruitEaten['blueberry'] = game.fruitEaten['blueberry'] + 1
         snake.updateScore(self.score)
 
     def updateTimer(self):
@@ -497,15 +497,15 @@ class Lemon(Fruit):
     """
     TBD... currently worth 1000 points.
     """
-    def __init__(self, allfruit, allsnake, gametally):
-        self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, gametally)
+    def __init__(self, allfruit, allsnake, game):
+        self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, game)
         self.timer = random.randint(LEMONTIMER[0], LEMONTIMER[1])
         self.color = YELLOW
         self.score = 1000
 
-    def isEaten(self, snake, gametally):
+    def isEaten(self, snake, game):
         snake.fruitEaten['lemon'] = snake.fruitEaten['lemon'] + 1
-        gametally.fruitEaten['lemon'] = gametally.fruitEaten['lemon'] + 1
+        game.fruitEaten['lemon'] = game.fruitEaten['lemon'] + 1
         snake.updateScore(self.score)
 
     def updateTimer(self):
@@ -515,23 +515,28 @@ class Lemon(Fruit):
         Fruit.drawFruit(self)
 
 
-class Tally:
+class GameData:
     """
-    Responsible for dynamics relating to the accumulation of fruits in a given game.
+    Responsible for dynamics for a particular game instance.
     fruitEaten - a dictionary containing a numeric tally of each fruit eaten.
     speedTrigger - the frequency (based on apples consumed) in which gamespeed is increased by one.
     bonusTrigger - the frequency (based on apples consumed) in which a bonus game - runBonus() - is launched.
     easyTrigger - a threshold (apples consumed); once reached fruit can be placed anywhere on screen (as opposed to away from edges).
+    apples - number of apples on screen.
     typeMin - the minimum value in determining bonus game type.
     typeMax - the maximum value in determining bonus game type.
     """
-    def __init__(self, st=20, bt=10, et=20, tmin=1, tmax=10):
+    def __init__(self, st=20, bt=10, et=20, a=1, tmin=1, tmax=10):
         self.fruitEaten = {'apple':0, 'poison':0, 'orange':0, 'raspberry':0, 'blueberry':0, 'lemon':0}
         self.speedTrigger = st
         self.bonusTrigger = bt
         self.easyTrigger = et
+        self.apples = a
         self.typeMin = tmin
         self.typeMax = tmax
+        self.basespeed = FPS
+        self.currentspeed = self.basespeed
+        self.slowtimer = 0
 
     def checkSpeedTrigger(self):
         """
@@ -679,37 +684,42 @@ def main():
                 mouse = pygame.mouse.get_pos()
                 if arcadebutton.pressed(mouse):
                     pygame.event.get()
-                    runGame()
+                    game = GameData()
+                    runGame(game)
                     showGameOverScreen()
                 elif duelbutton.pressed(mouse):
                     pygame.event.get()
                     opponent = False
                     opponent = showSelectOpponentScreen()
                     if opponent != False:
-                        runGame(10, 10, 9, opponent, True)
+                        game = GameData(10, 10, 9, 2)
+                        runGame(game, opponent)
                         showGameOverScreen()
                 elif partybutton.pressed(mouse):
                     pygame.event.get()
-                    runGame(25, 5, 0, [LINUS, WIGGLES, GIGGLES], True)
+                    game = GameData(25, 12, 0, 4)
+                    runGame(game, [LINUS, WIGGLES, GIGGLES])
                     showGameOverScreen()
                 elif instructbutton.pressed(mouse):
                     showInstructScreen()
             elif event.type == KEYDOWN:
                 if event.key == K_a:
                     pygame.event.get()
-                    runGame()
+                    game = GameData()
+                    runGame(game)
                     showGameOverScreen()
                 elif event.key == K_d:
                     pygame.event.get()
                     opponent = False
                     opponent = showSelectOpponentScreen()
                     if opponent != False:
-                        runGame(10, 10, 9, opponent, True)
+                        game = GameData(10, 10, 9, 2)
+                        runGame(game, opponent)
                         showGameOverScreen()
-                    showGameOverScreen()
                 elif event.key == K_p:
                     pygame.event.get()
-                    runGame(25, 5, 0, [LINUS, WIGGLES, GIGGLES], True)
+                    game = GameData(25, 12, 0, 4)
+                    runGame(game, [LINUS, WIGGLES, GIGGLES])
                     showGameOverScreen()
                 elif event.key == K_i:
                     showInstructScreen()
@@ -720,12 +730,11 @@ def main():
         FPSCLOCK.tick(FPS)
         
 
-def runGame(speedTrigger=20, bonusTrigger=10, easyTrigger=19, opponents=[], twoApples=False):
+def runGame(game, opponents=[]):
 
     # in game variables
     allsnake = []
     allfruit = []
-    gametally = Tally(speedTrigger, bonusTrigger, easyTrigger)
 
     # create player snake and add to all snakes
     player = Snake('snakey', [{'x':5, 'y':5},{'x':4, 'y':5},{'x':3, 'y':5}], RIGHT, GREEN, COBALTGREEN)
@@ -745,19 +754,14 @@ def runGame(speedTrigger=20, bonusTrigger=10, easyTrigger=19, opponents=[], twoA
     # set beginning variables
     player.player = True
     player.score = 10
-    basespeed = FPS
-    currentspeed = basespeed
-    slowtimer = 0
     nextEvent = 0
 
-    # create initial fruit
-    a = Apple(allfruit, allsnake, gametally)
-    allfruit.append(a)
-    
-    # add second apple if applicable
-    if twoApples:
-        b = Apple(allfruit, allsnake, gametally)
-        allfruit.append(b)
+    # create initial apple(s)
+    appleCounter = game.apples
+    while appleCounter > 0:
+        a = Apple(allfruit, allsnake, game)
+        allfruit.append(a)
+        appleCounter = appleCounter - 1
     
     # main game loop
     while True:
@@ -866,45 +870,45 @@ def runGame(speedTrigger=20, bonusTrigger=10, easyTrigger=19, opponents=[], twoA
         for snake in allsnake:
             for fruit in allfruit:
                 if snake.alive and snake.fruitCollision(fruit):
-                    fruit.isEaten(snake, gametally)
+                    fruit.isEaten(snake, game)
                     # apples have special adding properties
                     if fruit.__class__ == Apple:
                         # check for speed increase
-                        if gametally.checkSpeedTrigger():
-                            basespeed = basespeed + 1
+                        if game.checkSpeedTrigger():
+                            game.basespeed = game.basespeed + 1
                         # check for bonus drop
-                        if gametally.checkBonusTrigger():
-                            bonus = gametally.runBonus()
-                            for bonusfruit in bonus: #maybe try f = fruit.__class__()
+                        if game.checkBonusTrigger():
+                            bonus = game.runBonus()
+                            for bonusfruit in bonus:
                                 if bonusfruit == 'poison':
-                                    f = Poison(allfruit, allsnake, gametally)
+                                    f = Poison(allfruit, allsnake, game)
                                 elif bonusfruit == 'orange':
-                                    f = Orange(allfruit, allsnake, gametally)
+                                    f = Orange(allfruit, allsnake, game)
                                 elif bonusfruit == 'raspberry':
-                                    f = Raspberry(allfruit, allsnake, gametally)
+                                    f = Raspberry(allfruit, allsnake, game)
                                 elif bonusfruit == 'blueberry':
-                                    f = Blueberry(allfruit, allsnake, gametally)
+                                    f = Blueberry(allfruit, allsnake, game)
                                 else:
-                                    f = Lemon(allfruit, allsnake, gametally)
+                                    f = Lemon(allfruit, allsnake, game)
                                 allfruit.append(f)
                         # chance of poison drop
                         if random.randint(1,4) == 1:
-                            p = Poison(allfruit, allsnake, gametally)
+                            p = Poison(allfruit, allsnake, game)
                             allfruit.append(p)
                         # chance of orange drop
                         if random.randint(1,5) == 1:
-                            o = Orange(allfruit, allsnake, gametally)
+                            o = Orange(allfruit, allsnake, game)
                             allfruit.append(o)
                         # chance of raspberry drop
                         if random.randint(1,6) == 1:
-                            r = Raspberry(allfruit, allsnake, gametally)
+                            r = Raspberry(allfruit, allsnake, game)
                             allfruit.append(r)
                         # create new apple
-                        a = Apple(allfruit, allsnake, gametally)
+                        a = Apple(allfruit, allsnake, game)
                         allfruit.append(a)
                     elif fruit.__class__ == Blueberry:
                         # update speed
-                        slowtimer = slowtimer + currentspeed * 12    # add 12 seconds
+                        game.slowtimer = game.slowtimer + game.currentspeed * 9    # add 9 seconds
                     # remove fruit
                     allfruit.remove(fruit)
 
@@ -930,15 +934,15 @@ def runGame(speedTrigger=20, bonusTrigger=10, easyTrigger=19, opponents=[], twoA
                 snake.colorBorderCurrent = snake.colorBorder
 
         # check slow and adjust color and fps as needed
-        if slowtimer > 0:
-            slowtimer = slowtimer - 1
+        if game.slowtimer > 0:
+            game.slowtimer = game.slowtimer - 1
             for snake in allsnake:
                 snake.colorCurrent = BLUE
-            if currentspeed > 8:
-                currentspeed = currentspeed - 1
+            if game.currentspeed > 8:
+                game.currentspeed = game.currentspeed - 1
         else:
-            if currentspeed < basespeed:
-                currentspeed = currentspeed + 1
+            if game.currentspeed < game.basespeed:
+                game.currentspeed = game.currentspeed + 1
             # make sure color is normal
             for snake in allsnake:
                 snake.colorCurrent = snake.color
@@ -962,7 +966,7 @@ def runGame(speedTrigger=20, bonusTrigger=10, easyTrigger=19, opponents=[], twoA
             snake.drawScore(position, allsnake)
             position = position + 1
         pygame.display.update()
-        FPSCLOCK.tick(currentspeed)
+        FPSCLOCK.tick(game.currentspeed)
 
 
 def drawPressKeyMsg():
@@ -1042,8 +1046,8 @@ def showSelectOpponentScreen():
 
 def showInstructScreen():
     """
-	Blits instructions onto screen. Returns when exit button clicked / key pressed.
-	"""
+    Blits instructions onto screen. Returns when exit button clicked / key pressed.
+    """
     endinstructbutton = Button('(e)xit', WINDOWWIDTH / 2, WINDOWHEIGHT - 40)
 
     while True:
@@ -1074,17 +1078,17 @@ def showInstructScreen():
 
 def terminate():
     """
-	Clean exit from pygame.
-	"""
+    Clean exit from pygame.
+    """
     pygame.quit()
     sys.exit()
     
 
 def showGameStats(allsnake):
     """
-	Displays game stats for all snakes at end of game.
-	Returns when any key pressed.
-	"""
+    Displays game stats for all snakes at end of game.
+    Returns when any key pressed.
+    """
     position = 1
     for snake in allsnake:
         drawText('alive:', snake.alive, getPosition(position, allsnake), 25, snake.color)
@@ -1109,9 +1113,9 @@ def showGameStats(allsnake):
 
 def showGameOverScreen():
     """
-	Displays 'Game Over' message.
+    Displays 'Game Over' message.
     Returns when any key pressed.
-	"""
+    """
     gameOverFont = pygame.font.Font('freesansbold.ttf', 120)
     gameSurf = gameOverFont.render('Game', True, WHITE)
     overSurf = gameOverFont.render('Over', True, WHITE)
@@ -1135,10 +1139,10 @@ def showGameOverScreen():
 
 def getGrid(allsnake, allfruit):
     """
-	Returns dictionary representation of all snakes and fruits on screen.
-	Coordinates are entered as tuple (x,y).
-	Used by AI when choosing best path.
-	"""
+    Returns dictionary representation of all snakes and fruits on screen.
+    Coordinates are entered as tuple (x,y).
+    Used by AI when choosing best path.
+    """
     # refresh grid, dictionary representation of playing board used by AI
     grid = {(x,y):0 for x in range(CELLWIDTH) for y in range(CELLHEIGHT + (BUFFER / CELLSIZE))}
     
