@@ -48,6 +48,7 @@ LEFT = 'left'
 RIGHT = 'right'
 
 # for consistency in snake names
+SNAKEY = 'snakey'
 WIGGLES = 'wiggles'
 GIGGLES = 'giggles'
 LINUS = 'linus'
@@ -84,14 +85,26 @@ class Snake:
     multipliertimer - number of game iterations multiplier stays in effect.
     score - the number of points snake has accumulated.
     """
-    def __init__(self, n='snakey', c=[{'x':5, 'y':5},{'x':4, 'y':5},{'x':3, 'y':5}], d=RIGHT, sc=GREEN, sb=COBALTGREEN):
-        self.player = False
+    def __init__(self, n=SNAKEY, c=False, sc=GREEN, sb=COBALTGREEN):
         self.name = n
+        if self.name == SNAKEY:
+            self.player = True
+        else:
+            self.player = False
         self.alive = True
-        self.coords = c
+        
+        if c == False:
+            self.coords = getStartPosition(1)
+        else:
+            self.coords = c
         # ensure snake length
         assert len(self.coords) > 1
-        self.direction = d
+        
+        # determine direction -- currently only supports right or left
+        if self.coords[0]['x'] > self.coords[1]['x']:
+            self.direction = RIGHT
+        else:
+            self.direction = LEFT
         self.color = sc
         self.colorCurrent = self.color
         self.colorBorder = sb
@@ -223,8 +236,8 @@ class Opponent(Snake):
     """
     Derived from Snake class, this adds functionality for determining direction.
     """
-    def __init__(self, n='bot', c=[{'x':13, 'y':10},{'x':14, 'y':10},{'x':15, 'y':10}], d=LEFT, sc=COBALTGREEN, sb=GOLDENROD, r=20, p=10):
-        Snake.__init__(self, n, c, d, sc, sb)
+    def __init__(self, n='bot', c=False, sc=COBALTGREEN, sb=GOLDENROD, r=20, p=10):
+        Snake.__init__(self, n, c, sc, sb)
         self.avoidBoundaries = True
         self.randomness = r
         self.preferSameDirection = p
@@ -630,7 +643,7 @@ class Button():
         startSurf = BUTTONFONT.render(self.text, True, GREEN, DARKGRAY)
         DISPLAYSURF.blit(startSurf, self.rect)
 
-    def pressed(self,mouse):
+    def pressed(self, mouse):
         if mouse[0] > self.rect.topleft[0]:
             if mouse[1] > self.rect.topleft[1]:
                 if mouse[0] < self.rect.bottomright[0]:
@@ -640,6 +653,33 @@ class Button():
                 else: return False
             else: return False
         else: return False
+
+
+class SelectButton(Button):
+    """
+    Selected by color. Clicking will turn active state to True.
+    """
+    def __init__(self, text, x, y, a=False):
+        Button.__init__(self, text, x, y)
+        self.active = a
+        
+    def display(self):
+        if self.active == True:
+            startSurf = BUTTONFONT.render(self.text, True, COBALTGREEN, GOLDENROD)
+        else:
+            startSurf = BUTTONFONT.render(self.text, True, GREEN, DARKGRAY)
+            
+        DISPLAYSURF.blit(startSurf, self.rect)
+        
+    def pressed(self, mouse):
+        return Button.pressed(self, mouse)
+
+    def setActive(self, buttonlist):
+        for button in buttonlist:
+            if button == self:
+                self.active = True
+            else:
+                button.active = False
 
 
 def main():
@@ -685,20 +725,20 @@ def main():
                 if arcadebutton.pressed(mouse):
                     pygame.event.get()
                     game = GameData()
-                    runGame(game)
+                    runGame(game, [SNAKEY])
                     showGameOverScreen()
                 elif duelbutton.pressed(mouse):
                     pygame.event.get()
-                    opponent = False
-                    opponent = showSelectOpponentScreen()
-                    if opponent != False:
+                    players = False
+                    players = showSelectPlayersScreen()
+                    if players != False:
                         game = GameData(10, 10, 9, 2)
-                        runGame(game, opponent)
+                        runGame(game, players)
                         showGameOverScreen()
                 elif partybutton.pressed(mouse):
                     pygame.event.get()
                     game = GameData(25, 12, 0, 4)
-                    runGame(game, [LINUS, WIGGLES, GIGGLES])
+                    runGame(game, [SNAKEY, LINUS, WIGGLES, GIGGLES])
                     showGameOverScreen()
                 elif instructbutton.pressed(mouse):
                     showInstructScreen()
@@ -706,55 +746,58 @@ def main():
                 if event.key == K_a:
                     pygame.event.get()
                     game = GameData()
-                    runGame(game)
+                    runGame(game, [SNAKEY])
                     showGameOverScreen()
                 elif event.key == K_d:
                     pygame.event.get()
-                    opponent = False
-                    opponent = showSelectOpponentScreen()
-                    if opponent != False:
+                    players = False
+                    players = showSelectPlayersScreen()
+                    if players != False:
                         game = GameData(10, 10, 9, 2)
-                        runGame(game, opponent)
+                        runGame(game, players)
                         showGameOverScreen()
                 elif event.key == K_p:
                     pygame.event.get()
                     game = GameData(25, 12, 0, 4)
-                    runGame(game, [LINUS, WIGGLES, GIGGLES])
+                    runGame(game, [SNAKEY, LINUS, WIGGLES, GIGGLES])
                     showGameOverScreen()
                 elif event.key == K_i:
                     showInstructScreen()
                 elif event.key == K_ESCAPE or event.key == K_q:
                     terminate()
 
+        game = False
         pygame.display.update()
         FPSCLOCK.tick(FPS)
         
 
-def runGame(game, opponents=[]):
+def runGame(game, players=[]):
 
     # in game variables
     allsnake = []
     allfruit = []
-
-    # create player snake and add to all snakes
-    player = Snake('snakey', [{'x':5, 'y':5},{'x':4, 'y':5},{'x':3, 'y':5}], RIGHT, GREEN, COBALTGREEN)
-    allsnake.append(player)
-    
-    for snake in opponents:
-        if snake == WIGGLES:
-            bakey = Opponent(WIGGLES, [{'x':CELLWIDTH-5, 'y':5},{'x':CELLWIDTH-4, 'y':5},{'x':CELLWIDTH-3, 'y':5}], LEFT, OLIVEGREEN, PURPLE, 20, 5)
-            allsnake.append(bakey)
-        elif snake == GIGGLES:
-            wakey = Opponent(GIGGLES, [{'x':5, 'y':CELLHEIGHT-5},{'x':4, 'y':CELLHEIGHT-5},{'x':3, 'y':CELLHEIGHT-5}], RIGHT, PURPLE, EMERALDGREEN, 10, 10)
-            allsnake.append(wakey)
-        elif snake == LINUS:
-            linus = Opponent(LINUS, [{'x':CELLWIDTH-5, 'y':CELLHEIGHT-5},{'x':CELLWIDTH-4, 'y':CELLHEIGHT-5},{'x':CELLWIDTH-3, 'y':CELLHEIGHT-5}], LEFT, IVORY, COBALTGREEN, 5, 20)
-            allsnake.append(linus)
-    
-    # set beginning variables
-    player.player = True
-    player.score = 10
     nextEvent = 0
+
+    # create snakes based on name. 'player' is set to false initially to handle input
+    player = False
+    cur_position = 1
+    for snake in players:
+        if snake == SNAKEY:
+            player = Snake(SNAKEY, getStartPosition(cur_position))
+            allsnake.append(player)
+            cur_position = cur_position + 1
+        elif snake == LINUS:
+            linus = Opponent(LINUS, getStartPosition(cur_position), IVORY, COBALTGREEN, 5, 20)
+            allsnake.append(linus)
+            cur_position = cur_position + 1
+        elif snake == WIGGLES:
+            wiggles = Opponent(WIGGLES, getStartPosition(cur_position), OLIVEGREEN, PURPLE, 20, 5)
+            allsnake.append(wiggles)
+            cur_position = cur_position + 1
+        elif snake == GIGGLES:
+            giggles = Opponent(GIGGLES, getStartPosition(cur_position), PURPLE, EMERALDGREEN, 10, 10)
+            allsnake.append(giggles)
+            cur_position = cur_position + 1
 
     # create initial apple(s)
     appleCounter = game.apples
@@ -765,22 +808,33 @@ def runGame(game, opponents=[]):
     
     # main game loop
     while True:
-        # event handling loop -- get player's direction choice
-        stop = False
-        
+    
         # get grid representation for AIs
         grid = getGrid(allsnake, allfruit)
+        
+        # event handling loop -- get player's direction choice
+        stop = False
         
         # get events in queue. This updates players direction and other key instructions (quit, debug...)
         # if the next event after direction update suggests sharp direction change, following direction is stored.
         for event in pygame.event.get():
             if event.type == QUIT:
                 terminate()
-            elif nextEvent != 0:
+            elif nextEvent != 0 and player != False:
                 player.direction = nextEvent
                 nextEvent = 0
                 stop = True
-            elif event.type == KEYDOWN and stop == False:
+            # check for exit/quit/debug keys
+            if event.type == KEYDOWN and (event.key == K_ESCAPE or event.key == K_q):
+                terminate()
+            elif event.type == KEYDOWN and event.key == K_e:
+                return 1
+            elif event.type == KEYDOWN and event.key == K_g and DEBUG == True:
+                stop = True
+                debugPrintGrid(grid)
+
+            # if player exists - check for direction input
+            if event.type == KEYDOWN and player != False and stop == False:
                 if event.key == K_LEFT and player.direction != RIGHT:
                     player.direction = LEFT
                     stop = True
@@ -792,13 +846,9 @@ def runGame(game, opponents=[]):
                     stop = True
                 elif event.key == K_DOWN and player.direction != UP:
                     player.direction = DOWN
-                    stop = True
-                elif event.key == K_ESCAPE or event.key == K_q:
-                    terminate()
-                elif event.key == K_g and DEBUG == True:
-                    debugPrintGrid(grid)
+                    
             # peak into very next event. If key suggests sharp direction change, store in nextEvent
-            elif event.type == KEYDOWN and nextEvent == 0:
+            elif event.type == KEYDOWN and player != False and nextEvent == 0:
                 if event.key == K_LEFT and player.direction != RIGHT:
                     nextEvent = LEFT
                 elif event.key == K_RIGHT and player.direction != LEFT:
@@ -832,39 +882,40 @@ def runGame(game, opponents=[]):
 
         # check score - change color accordingly
         # only looks at player snake
-        if player.score > 2000:
-            player.color = SIENNA
-            player.colorBorder = CORAL
-        elif player.score > 1500:
-            player.color = CORAL
-            player.colorBorder = GOLDENROD
-        elif player.score > 1250:
-            player.color = GOLDENROD
-            player.colorBorder = EMERALDGREEN
-        elif player.score > 1000:
-            player.color = KHAKI
-            player.colorBorder = LIGHTYELLOW
-        elif player.score > 750:
-            player.color = YELLOW
-            player.colorBorder = GREEN
-        elif player.score > 500:
-            player.color = LIGHTYELLOW
-            player.colorBorder = FORESTGREEN
-        elif player.score > 400:
-            player.color = IVORY #change this
-            player.colorBorder = FORESTGREEN
-        elif player.score > 300:
-            player.color = GREENYELLOW
-            player.colorBorder = OLIVEGREEN
-        elif player.score > 200:
-            player.color = HONEYDEW
-            player.colorBorder = SEAGREEN   
-        elif player.score > 100:
-            player.color = SEAGREEN 
-            player.colorBorder = EMERALDGREEN
-        else:
-            player.color = GREEN
-            player.colorBorder = COBALTGREEN 
+        if player != False:
+            if player.score > 2000:
+                player.color = SIENNA
+                player.colorBorder = CORAL
+            elif player.score > 1500:
+                player.color = CORAL
+                player.colorBorder = GOLDENROD
+            elif player.score > 1250:
+                player.color = GOLDENROD
+                player.colorBorder = EMERALDGREEN
+            elif player.score > 1000:
+                player.color = KHAKI
+                player.colorBorder = LIGHTYELLOW
+            elif player.score > 750:
+                player.color = YELLOW
+                player.colorBorder = GREEN
+            elif player.score > 500:
+                player.color = LIGHTYELLOW
+                player.colorBorder = FORESTGREEN
+            elif player.score > 400:
+                player.color = IVORY #change this
+                player.colorBorder = FORESTGREEN
+            elif player.score > 300:
+                player.color = GREENYELLOW
+                player.colorBorder = OLIVEGREEN
+            elif player.score > 200:
+                player.color = HONEYDEW
+                player.colorBorder = SEAGREEN   
+            elif player.score > 100:
+                player.color = SEAGREEN 
+                player.colorBorder = EMERALDGREEN
+            else:
+                player.color = GREEN
+                player.colorBorder = COBALTGREEN 
 
         # check if fruit has been eaten by a snake
         for snake in allsnake:
@@ -912,12 +963,14 @@ def runGame(game, opponents=[]):
                     # remove fruit
                     allfruit.remove(fruit)
 
-        # check for snake death
+        # check for snake death and end game
+        gameover = True
         for snake in allsnake:
-            if snake.alive == False:
-                if snake.player == True:
-                    showGameStats(allsnake)
-                    return 1
+            if snake.alive == True:
+                gameover = False
+        if gameover:
+            showGameStats(allsnake)
+            return 1
 
         # check for size changes / move snake
         for snake in allsnake:
@@ -988,14 +1041,31 @@ def checkForKeyPress():
     return keyUpEvents[0].key
 
 
-def showSelectOpponentScreen():
+def showSelectPlayersScreen():
     """
-    Blits opponent select onto screen. Returns opponent selected.
+    Blits player/opponent select onto screen. Returns selection as list.
     """
-    opponentlinusbutton = Button('(l)inus', WINDOWWIDTH / 2, WINDOWHEIGHT * 2/6)
-    opponentwigglesbutton = Button('(w)iggles', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/6)
-    opponentgigglesbutton = Button('(g)iggles', WINDOWWIDTH / 2, WINDOWHEIGHT * 4/6)
-    cancelbutton = Button('(e)xit', WINDOWWIDTH / 2, WINDOWHEIGHT * 5/6)
+    playerbuttons = [] # not yet implemented
+    playersnakeybutton = SelectButton('(s)nakey', WINDOWWIDTH / 3, WINDOWHEIGHT * 2/7, True)
+    playerbuttons.append(playersnakeybutton)
+    playerlinusbutton = SelectButton('(l)inus', WINDOWWIDTH / 3, WINDOWHEIGHT * 3/7)
+    playerbuttons.append(playerlinusbutton)
+    playerwigglesbutton = SelectButton('(w)iggles', WINDOWWIDTH / 3, WINDOWHEIGHT * 4/7)
+    playerbuttons.append(playerwigglesbutton)
+    playergigglesbutton = SelectButton('(g)iggles', WINDOWWIDTH / 3, WINDOWHEIGHT * 5/7)
+    playerbuttons.append(playergigglesbutton)
+    
+    opponentbuttons = [] # not yet implemented
+    opponentlinusbutton = SelectButton('(l)inus', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 3/7, True)
+    opponentbuttons.append(opponentlinusbutton)
+    opponentwigglesbutton = SelectButton('(w)iggles', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 4/7)
+    opponentbuttons.append(opponentwigglesbutton)
+    opponentgigglesbutton = SelectButton('(g)iggles', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 5/7)
+    opponentbuttons.append(opponentgigglesbutton)
+    
+    
+    cancelbutton = Button('(e)xit', WINDOWWIDTH / 3, WINDOWHEIGHT * 6/7)
+    acceptbutton = Button('(d)uel!', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 6/7)
 
     while True:
 
@@ -1006,35 +1076,80 @@ def showSelectOpponentScreen():
         DISPLAYSURF.fill(BGCOLOR)
         DISPLAYSURF.blit(choiceSurf, choiceRect)
 
-        opponentlinusbutton.display()
-        opponentwigglesbutton.display()
-        opponentgigglesbutton.display()
+        # display all buttons
+        for button in playerbuttons:
+            button.display()
+        for button in opponentbuttons:
+            button.display()
         cancelbutton.display()
+        acceptbutton.display()
 
         for event in pygame.event.get():
             if event.type == QUIT:
                 terminate()
             elif event.type == MOUSEBUTTONDOWN:
                 mouse = pygame.mouse.get_pos()
-                if opponentlinusbutton.pressed(mouse):
+                # check each button for player
+                for button in playerbuttons:
+                    if button.pressed(mouse):
+                        button.setActive(playerbuttons)
+                # check each button for opponent
+                for button in opponentbuttons:
+                    if button.pressed(mouse):
+                        button.setActive(opponentbuttons)
+                # check cancel/accept buttons
+                if cancelbutton.pressed(mouse):
                     pygame.event.get()
-                    return [LINUS]
-                elif opponentwigglesbutton.pressed(mouse):
+                    return False
+                elif acceptbutton.pressed(mouse):
                     pygame.event.get()
-                    return [WIGGLES]
-                elif opponentgigglesbutton.pressed(mouse):
-                    pygame.event.get()
-                    return [GIGGLES]
+                    final = []
+                    if playersnakeybutton.active:
+                        final.append(SNAKEY)
+                    elif playerlinusbutton.active:
+                        final.append(LINUS)
+                    elif playerwigglesbutton.active:
+                        final.append(WIGGLES)
+                    elif playergigglesbutton.active:
+                        final.append(GIGGLES)
+                    if opponentlinusbutton.active:
+                        final.append(LINUS)
+                    elif opponentwigglesbutton.active:
+                        final.append(WIGGLES)
+                    elif opponentgigglesbutton.active:
+                        final.append(GIGGLES)
+                    return final
+                                                                
             elif event.type == KEYDOWN:
-                if event.key == K_l:
+                if event.key == K_s:
                     pygame.event.get()
-                    return [LINUS]
+                    playersnakeybutton.setActive(playerbuttons)
+                elif event.key == K_l:
+                    pygame.event.get()
+                    opponentlinusbutton.setActive(opponentbuttons)
                 elif event.key == K_w:
                     pygame.event.get()
-                    return [WIGGLES]
+                    opponentwigglesbutton.setActive(opponentbuttons)
                 elif event.key == K_g:
                     pygame.event.get()
-                    return [GIGGLES]
+                    opponentgigglesbutton.setActive(opponentbuttons)
+                elif event.key == K_d:
+                    final = []
+                    if playersnakeybutton.active:
+                        final.append(SNAKEY)
+                    elif playerlinusbutton.active:
+                        final.append(LINUS)
+                    elif playerwigglesbutton.active:
+                        final.append(WIGGLES)
+                    elif playergigglesbutton.active:
+                        final.append(GIGGLES)
+                    if opponentlinusbutton.active:
+                        final.append(LINUS)
+                    elif opponentwigglesbutton.active:
+                        final.append(WIGGLES)
+                    elif opponentgigglesbutton.active:
+                        final.append(GIGGLES)
+                    return final
                 elif event.key == K_e:
                     pygame.event.get()
                     return False
@@ -1197,6 +1312,17 @@ def debugPrintGrid(grid):
 
 def getPosition(position, allsnake):
     return (WINDOWWIDTH - (float(position) / float(len(allsnake)) * WINDOWWIDTH))
+    
+
+def getStartPosition(pos=1):
+    if pos == 1:
+        return [{'x':5, 'y':5},{'x':4, 'y':5},{'x':3, 'y':5}]
+    elif pos == 2:
+        return [{'x':CELLWIDTH-5, 'y':CELLHEIGHT-5},{'x':CELLWIDTH-4, 'y':CELLHEIGHT-5},{'x':CELLWIDTH-3, 'y':CELLHEIGHT-5}]
+    elif pos == 3:
+        return [{'x':CELLWIDTH-5, 'y':5},{'x':CELLWIDTH-4, 'y':5},{'x':CELLWIDTH-3, 'y':5}]
+    elif pos == 4:
+        [{'x':5, 'y':CELLHEIGHT-5},{'x':4, 'y':CELLHEIGHT-5},{'x':3, 'y':CELLHEIGHT-5}]
 
 
 if __name__ == '__main__':
