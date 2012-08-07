@@ -42,6 +42,11 @@ ORANGE = (255, 127, 0)
 PURPLE = (142, 56, 142)
 MAROON = (255, 52, 179)
 BACKGROUNDCOLOR = BLACK
+BUTTON_COLOR = GREEN
+BUTTON_TEXT = DARKGRAY
+BUTTON_COLOR_SELECTED = COBALTGREEN
+BUTTON_TEXT_SELECTED = GOLDENROD
+MESSAGE_COLOR = GREEN
 
 # for consistency in direction types
 UP = 'up'
@@ -714,12 +719,12 @@ class Button():
     """
     def __init__(self, text, x, y):
         self.text = text
-        startSurf = BUTTONFONT.render(self.text, True, GREEN, DARKGRAY)
+        startSurf = BUTTONFONT.render(self.text, True, BUTTON_COLOR, BUTTON_TEXT)
         self.rect = startSurf.get_rect()
         self.rect.center = x,y
 
     def display(self):
-        startSurf = BUTTONFONT.render(self.text, True, GREEN, DARKGRAY)
+        startSurf = BUTTONFONT.render(self.text, True, BUTTON_COLOR, BUTTON_TEXT)
         DISPLAYSURF.blit(startSurf, self.rect)
 
     def pressed(self, mouse):
@@ -744,9 +749,9 @@ class SelectButton(Button):
         
     def display(self):
         if self.active == True:
-            startSurf = BUTTONFONT.render(self.text, True, COBALTGREEN, GOLDENROD)
+            startSurf = BUTTONFONT.render(self.text, True, BUTTON_COLOR_SELECTED, BUTTON_TEXT_SELECTED)
         else:
-            startSurf = BUTTONFONT.render(self.text, True, GREEN, DARKGRAY)
+            startSurf = BUTTONFONT.render(self.text, True, BUTTON_COLOR, BUTTON_TEXT)
             
         DISPLAYSURF.blit(startSurf, self.rect)
         
@@ -917,7 +922,7 @@ def runGame(game, players=[]):
                 game.updateBaseSpeed(10)
                 game.updateCurrentSpeed(False, True)
             elif event.type == KEYDOWN and event.key == K_s and (player == False or player.alive == False):
-                game.updateBaseSpeed(-5)
+                game.updateBaseSpeed(-10)
                 game.updateCurrentSpeed(False, True)
 
             # if player exists - check for direction input
@@ -1118,6 +1123,27 @@ def checkForKeyPress():
     if keyUpEvents[0].key == K_ESCAPE or keyUpEvents[0].key == K_q:
         terminate()
     return keyUpEvents[0].key
+    
+    
+def waitForInput():
+    """
+    Returns when key pressed or mouse clicked.
+    Escapes/Quits as normal.
+    """
+    while True:
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                terminate()
+            elif event.type == KEYDOWN:
+                if event.key == K_ESCAPE or event.key == K_q:
+                    terminate()
+                elif event.type == KEYDOWN:
+                    pygame.event.get()
+                    return
+            elif event.type == MOUSEBUTTONDOWN:
+                if pygame.mouse.get_pressed() != None:
+                    pygame.event.get()
+                    return
 
 
 def showSelectPlayersScreen():
@@ -1299,12 +1325,9 @@ def showGameStats(allsnake):
     drawMessage('Press any key.', WINDOWWIDTH / 2, WINDOWHEIGHT / 20 * 19, GOLDENROD)
     pygame.display.update()
     pygame.time.wait(300)
-    checkForKeyPress() # clear out any key presses in the event queue
-
-    while True:
-        if checkForKeyPress():
-            pygame.event.get() # clear event queue
-            return
+    #checkForKeyPress() # clear out any key presses in the event queue
+    pygame.event.get() # clear event queue
+    showGameOverScreen()
 
 
 def showGameOverScreen():
@@ -1320,13 +1343,11 @@ def showGameOverScreen():
     DISPLAYSURF.blit(gameOverSurf, gameOverRect)
     drawMessage('Press any key.', WINDOWWIDTH / 2, WINDOWHEIGHT / 20 * 19, GOLDENROD)
     pygame.display.update()
-    pygame.time.wait(300)
-    checkForKeyPress() # clear out any key presses in the event queue
+    pygame.time.wait(100)
+    pygame.event.get()
+    #checkForKeyPress() # clear out any key presses in the event queue
 
-    while True:
-        if checkForKeyPress():
-            pygame.event.get() # clear event queue
-            return
+    waitForInput()
 
 
 def getGrid(allsnake, allfruit):
@@ -1371,7 +1392,7 @@ def drawText(text, value, x=1, y=1, color=WHITE, background=BLACK):
     DISPLAYSURF.blit(scoreSurf, scoreRect)
     
     
-def drawMessage(text, x=1, y=1, color=GREEN):
+def drawMessage(text, x=1, y=1, color=MESSAGE_COLOR):
     """
     Draws message to screen.
     """
