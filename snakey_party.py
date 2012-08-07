@@ -7,6 +7,8 @@ from pygame.locals import *
 WINDOWWIDTH = 640
 WINDOWHEIGHT = 480
 FPS = 12
+MIN_FPS = 3
+MAX_FPS = 60
 CELLSIZE = 20
 BUFFER = CELLSIZE * 1 # number of cells to exclude from grid height; displays in-game info
 assert WINDOWWIDTH % CELLSIZE == 0, "Window width must be a multiple of cell size."
@@ -14,7 +16,7 @@ assert (WINDOWHEIGHT - BUFFER) % CELLSIZE == 0, "Window height must be a multipl
 CELLWIDTH = int(WINDOWWIDTH / CELLSIZE)
 CELLHEIGHT = int((WINDOWHEIGHT - BUFFER) / CELLSIZE)
 
-# colors
+# colors - (R G B)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
@@ -39,7 +41,7 @@ SIENNA = (255, 130, 71)
 ORANGE = (255, 127, 0)
 PURPLE = (142, 56, 142)
 MAROON = (255, 52, 179)
-BGCOLOR = BLACK
+BACKGROUNDCOLOR = BLACK
 
 # for consistency in direction types
 UP = 'up'
@@ -56,12 +58,14 @@ LINUS = 'linus'
 # index of snake's head
 HEAD = 0
 
-# minimum and maximum frames fruit remains on screen
-POISONTIMER = (100,200)
-ORANGETIMER = (35,65)
-RASPBERRYTIMER = (30,45)
-BLUEBERRYTIMER = (20,40)
-LEMONTIMER = (100,100)
+# minimum and maximum frames fruit remains on screen - determined randomly
+POISONTIMER = (100, 200)
+ORANGETIMER = (35, 65)
+RASPBERRYTIMER = (30, 45)
+BLUEBERRYTIMER = (20, 40)
+LEMONTIMER = (100, 100)
+
+FREEZING_POINT = 8
 
 POISONBONUS = 7
 ORANGEBONUS = 8
@@ -84,6 +88,7 @@ class Snake:
     multiplier - all fruit eaten which cause points to be scored are multiplied by this.
     multipliertimer - number of game iterations multiplier stays in effect.
     score - the number of points snake has accumulated.
+    place - used to determine death order.
     """
     def __init__(self, n=SNAKEY, c=False, sc=GREEN, sb=COBALTGREEN):
         self.name = n
@@ -113,6 +118,7 @@ class Snake:
         self.multiplier = 1
         self.multipliertimer = 0
         self.score = 0
+        self.place = False
         self.fruitEaten = {'apple':0, 'poison':0, 'orange':0, 'raspberry':0, 'blueberry':0, 'lemon':0}
 
     def updateScore(self, points_input):
@@ -134,6 +140,19 @@ class Snake:
         # multiplier value does not stack, but time does
         self.multiplier = multiplier_input
         self.multipliertimer = self.multipliertimer + timer_input
+        
+    def getPlace(self, snakes):
+        """
+        Returns a string containing the death order of snake, based on number of snakes.
+        """
+        if self.place == snakes:
+            return '1st'
+        elif self.place + 1 == snakes:
+            return '2nd'
+        elif self.place + 2 == snakes:
+            return '3rd'
+        else:
+            return 'Last'
 
     def boundsCollision(self):
         """
@@ -310,6 +329,9 @@ class Opponent(Snake):
 
         # update snake direction to direction with highest score
         self.direction = max(nextDirection, key=nextDirection.get)
+
+    def getPlace(self, snakes):
+        return Snake.getPlace(self, snakes)
 
     def updateScore(self, points_input):
         Snake.updateScore(self, points_input)
@@ -535,6 +557,7 @@ class GameData:
     speedTrigger - the frequency (based on apples consumed) in which gamespeed is increased by one.
     bonusTrigger - the frequency (based on apples consumed) in which a bonus game - runBonus() - is launched.
     easyTrigger - a threshold (apples consumed); once reached fruit can be placed anywhere on screen (as opposed to away from edges).
+    currentplace - the current 'place' of snake. When snake has died.
     apples - number of apples on screen.
     typeMin - the minimum value in determining bonus game type.
     typeMax - the maximum value in determining bonus game type.
@@ -544,6 +567,7 @@ class GameData:
         self.speedTrigger = st
         self.bonusTrigger = bt
         self.easyTrigger = et
+        self.currentplace = 1
         self.apples = a
         self.typeMin = tmin
         self.typeMax = tmax
@@ -577,6 +601,61 @@ class GameData:
             return True
         else:
             return False
+            
+    def checkSnakeDeath(self, allsnake):
+        """
+        Returns true if there are no more living snakes.
+        Sets place of snake if recently died.
+        """
+        gameover = True
+        for snake in allsnake:
+            if snake.alive == True:
+                gameover = False
+            elif snake.place == False:
+                snake.place = self.currentplace
+                self.currentplace = self.currentplace + 1
+        return gameover
+        
+    def updateBaseSpeed(self, value):
+        """
+        Updates basespeed by value inputted.
+        Checks against parameters
+        """
+        if (self.basespeed + value > MIN_FPS) and (self.basespeed + value < MAX_FPS):
+            self.basespeed = self.basespeed + value
+            self.currentspeed = self.basespeed
+            
+    def updateCurrentSpeed(self, goal=False, force=False):
+        """
+        Adjusts currentspeed one towards goal.
+        Goal defaults to basespeed.
+        Optional 'force' will set currentspeed to goal instead.
+        """
+        if goal == False:
+            goal = self.basespeed
+            
+        if force != False:
+            self.currentspeed = goal
+        else:
+            if self.currentspeed < goal:
+                self.currentspeed = self.currentspeed + 1
+            elif self.currentspeed > goal:
+                self.currentspeed = self.currentspeed - 1
+
+    def checkSlowTimer(self):
+        """
+        Returns true if slowtimer is greater than 0.
+        """
+        if self.slowtimer > 0:
+            return True
+        else:
+            return False
+
+    def updateSlowTimer(self):
+        """
+        Decrements slowtimer by one
+        """
+        self.slowtimer = self.slowtimer - 1
 
     def runBonus(self):
         """
@@ -710,7 +789,7 @@ def main():
 
     while True: ### need to update this
 
-        DISPLAYSURF.fill(BGCOLOR)
+        DISPLAYSURF.fill(BACKGROUNDCOLOR)
         DISPLAYSURF.blit(titleSurf, titleRect)
         arcadebutton.display()
         duelbutton.display()
@@ -828,10 +907,18 @@ def runGame(game, players=[]):
             if event.type == KEYDOWN and (event.key == K_ESCAPE or event.key == K_q):
                 terminate()
             elif event.type == KEYDOWN and event.key == K_e:
+                showGameStats(allsnake)
                 return 1
             elif event.type == KEYDOWN and event.key == K_g and DEBUG == True:
                 stop = True
                 debugPrintGrid(grid)
+            # if player is dead / does not exist - check for speed controls
+            elif event.type == KEYDOWN and event.key == K_f and (player == False or player.alive == False):
+                game.updateBaseSpeed(10)
+                game.updateCurrentSpeed(False, True)
+            elif event.type == KEYDOWN and event.key == K_s and (player == False or player.alive == False):
+                game.updateBaseSpeed(-5)
+                game.updateCurrentSpeed(False, True)
 
             # if player exists - check for direction input
             if event.type == KEYDOWN and player != False and stop == False:
@@ -926,7 +1013,7 @@ def runGame(game, players=[]):
                     if fruit.__class__ == Apple:
                         # check for speed increase
                         if game.checkSpeedTrigger():
-                            game.basespeed = game.basespeed + 1
+                            game.updateBaseSpeed(1)
                         # check for bonus drop
                         if game.checkBonusTrigger():
                             bonus = game.runBonus()
@@ -963,12 +1050,8 @@ def runGame(game, players=[]):
                     # remove fruit
                     allfruit.remove(fruit)
 
-        # check for snake death and end game
-        gameover = True
-        for snake in allsnake:
-            if snake.alive == True:
-                gameover = False
-        if gameover:
+        # check for snake death, update place and end game if no more snakes are alive
+        if game.checkSnakeDeath(allsnake):
             showGameStats(allsnake)
             return 1
 
@@ -987,15 +1070,13 @@ def runGame(game, players=[]):
                 snake.colorBorderCurrent = snake.colorBorder
 
         # check slow and adjust color and fps as needed
-        if game.slowtimer > 0:
-            game.slowtimer = game.slowtimer - 1
+        if game.checkSlowTimer():
+            game.updateSlowTimer()
+            game.updateCurrentSpeed(FREEZING_POINT)
             for snake in allsnake:
                 snake.colorCurrent = BLUE
-            if game.currentspeed > 8:
-                game.currentspeed = game.currentspeed - 1
         else:
-            if game.currentspeed < game.basespeed:
-                game.currentspeed = game.currentspeed + 1
+            game.updateCurrentSpeed()
             # make sure color is normal
             for snake in allsnake:
                 snake.colorCurrent = snake.color
@@ -1006,7 +1087,7 @@ def runGame(game, players=[]):
                 if fruit.updateTimer() == False:
                     allfruit.remove(fruit)
 
-        DISPLAYSURF.fill(BGCOLOR)
+        DISPLAYSURF.fill(BACKGROUNDCOLOR)
         drawGrid()
         for fruit in allfruit:
             fruit.drawFruit()
@@ -1018,15 +1099,13 @@ def runGame(game, players=[]):
         for snake in allsnake:
             snake.drawScore(position, allsnake)
             position = position + 1
+        # if player is dead, print extra messages
+        if player == False or player.alive == False:
+            drawMessage('press (e) to end game early', WINDOWWIDTH / 2, WINDOWHEIGHT / 20 * 16)
+            drawMessage('press (f) to fast-forward game', WINDOWWIDTH / 2, WINDOWHEIGHT / 20 * 17)
+            drawMessage('press (s) to slow game', WINDOWWIDTH / 2, WINDOWHEIGHT / 20 * 18)
         pygame.display.update()
         FPSCLOCK.tick(game.currentspeed)
-
-
-def drawPressKeyMsg():
-    pressKeySurf = BASICFONT.render('Press any key to continue.', True, DARKGRAY)
-    pressKeyRect = pressKeySurf.get_rect()
-    pressKeyRect.topleft = (WINDOWWIDTH - 200, WINDOWHEIGHT - 30)
-    DISPLAYSURF.blit(pressKeySurf, pressKeyRect)
 
 
 def checkForKeyPress():
@@ -1073,7 +1152,7 @@ def showSelectPlayersScreen():
         choiceSurf = choiceFont.render('Choose Opponent:', True, WHITE, FORESTGREEN)
         choiceRect = choiceSurf.get_rect()
 
-        DISPLAYSURF.fill(BGCOLOR)
+        DISPLAYSURF.fill(BACKGROUNDCOLOR)
         DISPLAYSURF.blit(choiceSurf, choiceRect)
 
         # display all buttons
@@ -1206,18 +1285,20 @@ def showGameStats(allsnake):
     """
     position = 1
     for snake in allsnake:
-        drawText('alive:', snake.alive, getPosition(position, allsnake), 25, snake.color)
-        drawText('score:', snake.score, getPosition(position, allsnake), 45, snake.color)
-        drawText('apples:', snake.fruitEaten['apple'], getPosition(position, allsnake), 65, RED)
-        drawText('poison:', snake.fruitEaten['poison'], getPosition(position, allsnake), 85, GREEN)
-        drawText('oranges:', snake.fruitEaten['orange'], getPosition(position, allsnake), 105, ORANGE)
-        drawText('raspberries:', snake.fruitEaten['raspberry'], getPosition(position, allsnake), 125, PURPLE)
-        drawText('blueberries:', snake.fruitEaten['blueberry'], getPosition(position, allsnake), 145, BLUE)
+        drawMessage(snake.name, getPosition(position, allsnake), WINDOWHEIGHT / 20 * 3, snake.color)
+        if len(allsnake) != 1:
+            drawText('place:', snake.getPlace(len(allsnake)), getPosition(position, allsnake), WINDOWHEIGHT / 20 * 5, snake.color)
+        drawText('score:', snake.score, getPosition(position, allsnake), WINDOWHEIGHT / 20 * 6, snake.color)
+        drawText('apples:', snake.fruitEaten['apple'], getPosition(position, allsnake), WINDOWHEIGHT / 20 * 7, RED)
+        drawText('poison:', snake.fruitEaten['poison'], getPosition(position, allsnake), WINDOWHEIGHT / 20 * 8, GREEN)
+        drawText('oranges:', snake.fruitEaten['orange'], getPosition(position, allsnake), WINDOWHEIGHT / 20 * 9, ORANGE)
+        drawText('raspberries:', snake.fruitEaten['raspberry'], getPosition(position, allsnake), WINDOWHEIGHT / 20 * 10, PURPLE)
+        drawText('blueberries:', snake.fruitEaten['blueberry'], getPosition(position, allsnake), WINDOWHEIGHT / 20 * 11, BLUE)
         position = position + 1
 
-    drawPressKeyMsg()
+    drawMessage('Press any key.', WINDOWWIDTH / 2, WINDOWHEIGHT / 20 * 19, GOLDENROD)
     pygame.display.update()
-    pygame.time.wait(200)
+    pygame.time.wait(300)
     checkForKeyPress() # clear out any key presses in the event queue
 
     while True:
@@ -1231,19 +1312,15 @@ def showGameOverScreen():
     Displays 'Game Over' message.
     Returns when any key pressed.
     """
-    gameOverFont = pygame.font.Font('freesansbold.ttf', 120)
-    gameSurf = gameOverFont.render('Game', True, WHITE)
-    overSurf = gameOverFont.render('Over', True, WHITE)
-    gameRect = gameSurf.get_rect()
-    overRect = overSurf.get_rect()
-    gameRect.midtop = (WINDOWWIDTH / 2, 10)
-    overRect.midtop = (WINDOWWIDTH / 2, gameRect.height + 10 + 25)
+    gameOverFont = pygame.font.Font('freesansbold.ttf', 48)
+    gameOverSurf = gameOverFont.render('Game Over', True, WHITE)
+    gameOverRect = gameOverSurf.get_rect()
+    gameOverRect.midtop = (WINDOWWIDTH / 2, WINDOWHEIGHT / 3 * 2)
 
-    DISPLAYSURF.blit(gameSurf, gameRect)
-    DISPLAYSURF.blit(overSurf, overRect)
-    drawPressKeyMsg()
+    DISPLAYSURF.blit(gameOverSurf, gameOverRect)
+    drawMessage('Press any key.', WINDOWWIDTH / 2, WINDOWHEIGHT / 20 * 19, GOLDENROD)
     pygame.display.update()
-    pygame.time.wait(200)
+    pygame.time.wait(300)
     checkForKeyPress() # clear out any key presses in the event queue
 
     while True:
@@ -1270,19 +1347,44 @@ def getGrid(allsnake, allfruit):
     for fruit in allfruit:
         if fruit.__class__ == Apple:
             grid[(fruit.coords['x'], fruit.coords['y'])] = 'apple'
+        elif fruit.__class__ == Poison:
+            grid[(fruit.coords['x'], fruit.coords['y'])] = 'poison'
+        elif fruit.__class__ == Orange:
+            grid[(fruit.coords['x'], fruit.coords['y'])] = 'orange'
+        elif fruit.__class__ == Raspberry:
+            grid[(fruit.coords['x'], fruit.coords['y'])] = 'raspberry'
+        elif fruit.__class__ == Blueberry:
+            grid[(fruit.coords['x'], fruit.coords['y'])] = 'blueberry'
+        elif fruit.__class__ == Lemon:
+            grid[(fruit.coords['x'], fruit.coords['y'])] = 'lemon'
 
     return grid
 
 
 def drawText(text, value, x=1, y=1, color=WHITE, background=BLACK):
+    """
+    Draws text & value with background to screen.
+    """
     scoreSurf = BASICFONT.render('%s %s' % (text, value), True, color, background)
     scoreRect = scoreSurf.get_rect()
     scoreRect.topleft = (x, y)
     DISPLAYSURF.blit(scoreSurf, scoreRect)
-
+    
+    
+def drawMessage(text, x=1, y=1, color=GREEN):
+    """
+    Draws message to screen.
+    """
+    messageSurf = BASICFONT.render(text, True, color)
+    messageRect = messageSurf.get_rect()
+    messageRect.topleft = (x, y)
+    DISPLAYSURF.blit(messageSurf, messageRect)
 
 
 def drawGrid():
+    """
+    Draws grid to screen.
+    """
     for x in range(0, WINDOWWIDTH, CELLSIZE): # draw vertical lines
         pygame.draw.line(DISPLAYSURF, DARKGRAY, (x, BUFFER), (x, WINDOWHEIGHT))
     for y in range(BUFFER, WINDOWHEIGHT, CELLSIZE): # draw horizontal lines
