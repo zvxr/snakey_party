@@ -47,7 +47,7 @@ MAROON = (255, 52, 179)
 BACKGROUNDCOLOR = BLACK
 BUTTONCLR = GREEN
 BUTTONTXT = DARKGRAY
-BUTTONCLR_SELECTED = COBALTGREEN
+BUTTONCLR_SL = COBALTGREEN
 BUTTONTXT_SL = GOLDENROD
 MESSAGE_COLOR = GREEN
 
@@ -219,7 +219,7 @@ class Snake:
         else:
             return False
 
-    def move(self):
+    def move(self, trailing=False):
         """
         This will update coords for snake, moving it one cell in given direction.
         It also factors in and updates growth if any growth is "owed" snake (one per game iteration).
@@ -236,10 +236,10 @@ class Snake:
                     # snake is too short -- remove last segment as normal
                     del self.coords[-1]
             elif self.growth > 0:
-                self.growth = self.growth - 1
                 # implement positive growth by not deleting last segment
-            else:
-                # no growth factor, delete last segment
+                self.growth = self.growth - 1
+            elif trailing == False:
+                # no growth factor, delete last segment if trailing is off
                 del self.coords[-1]
 
             # determine new head coordinates by direction
@@ -255,7 +255,7 @@ class Snake:
             elif self.direction == RIGHT:
                 newhead = {'x': self.coords[HEAD]['x'] + 1, 
                            'y': self.coords[HEAD]['y']}
-            
+
             # insert new head segment
             self.coords.insert(HEAD, newhead)
 
@@ -385,8 +385,8 @@ class Opponent(Snake):
     def fruitCollision(self, fruit):
         return Snake.fruitCollision(self, fruit)
 
-    def move(self):
-        Snake.move(self)
+    def move(self, trailing):
+        Snake.move(self, trailing)
 
     def drawSnake(self):
         Snake.drawSnake(self)
@@ -610,6 +610,7 @@ class GameData:
         self.basespeed = FPS
         self.currentspeed = self.basespeed
         self.slowtimer = 0
+        self.trailing = False
 
     def checkSpeedTrigger(self):
         """
@@ -781,7 +782,7 @@ class SelectButton(Button):
         
     def display(self):
         if self.active == True:
-            startSurf = BUTTONFONT.render(self.text, True, BUTTONCLR_SELECTED, BUTTONTXT_SL)
+            startSurf = BUTTONFONT.render(self.text, True, BUTTONCLR_SL, BUTTONTXT_SL)
         else:
             startSurf = BUTTONFONT.render(self.text, True, BUTTONCLR, BUTTONTXT)
             
@@ -822,7 +823,8 @@ def main():
     arcadebutton = Button('(a)rcade mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/8)
     duelbutton = Button('(d)uel mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 4/8)
     partybutton = Button('(p)arty mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 5/8)
-    instructbutton = Button('(i)nstructions', WINDOWWIDTH / 2, WINDOWHEIGHT * 6/8)
+    tronybutton = Button('(t)ron-y mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 6/8)
+    instructbutton = Button('(i)nstructions', WINDOWWIDTH / 2, WINDOWHEIGHT * 7/8)
 
     while True: ### need to update this
 
@@ -831,6 +833,7 @@ def main():
         arcadebutton.display()
         duelbutton.display()
         partybutton.display()
+        tronybutton.display()
         instructbutton.display()
 
         for event in pygame.event.get():
@@ -856,6 +859,12 @@ def main():
                     game = GameData(25, 12, 0, 4)
                     runGame(game, [SNAKEY, LINUS, WIGGLES, GIGGLES])
                     showGameOverScreen()
+                elif tronybutton.pressed(mouse):
+                    pygame.event.get()
+                    game = GameData(25, 12, 0, 0)
+                    game.trailing = True
+                    runGame(game, [SNAKEY, LINUS, WIGGLES, GIGGLES])
+                    showGameOverScreen()
                 elif instructbutton.pressed(mouse):
                     showInstructScreen()
             elif event.type == KEYDOWN:
@@ -875,6 +884,12 @@ def main():
                 elif event.key == K_p:
                     pygame.event.get()
                     game = GameData(25, 12, 0, 4)
+                    runGame(game, [SNAKEY, LINUS, WIGGLES, GIGGLES])
+                    showGameOverScreen()
+                elif event.key == K_t:
+                    pygame.event.get()
+                    game = GameData(25, 12, 0, 0)
+                    game.trailing = True
                     runGame(game, [SNAKEY, LINUS, WIGGLES, GIGGLES])
                     showGameOverScreen()
                 elif event.key == K_i:
@@ -1098,7 +1113,7 @@ def runGame(game, players=[]):
 
         # check for size changes / move snake
         for snake in allsnake:
-            snake.move()
+            snake.move(game.trailing)
 
         # check multiplier and adjust color and multiplier as needed
         for snake in allsnake:
