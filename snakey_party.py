@@ -26,6 +26,9 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 DARKGRAY = (40, 40, 40)
+PINK = (255, 105, 180)
+SLATEBLUE = (131, 111, 255)
+
 HONEYDEW = (240, 255, 240)
 MINTGREEN = (189, 252, 201)
 SEAGREEN = (84, 255, 159)
@@ -59,9 +62,9 @@ RIGHT = 'right'
 
 # for consistency in snake names
 SNAKEY = 'snakey'
-WIGGLES = 'wiggles'
-GIGGLES = 'giggles'
 LINUS = 'linus'
+WIGGLES = 'wiggles'
+GOOBER = 'goober'
 
 # index of snake's head
 HEAD = 0
@@ -289,15 +292,26 @@ class Opponent(Snake):
     """
     Derived from Snake class, this adds functionality for determining direction.
     """
-    def __init__(self, n='bot', c=False, sc=COBALTGREEN, sb=GOLDENROD, r=20, p=10):
+    def __init__(self, n='bot', c=False, sc=COBALTGREEN, sb=GOLDENROD, r=20, p=10, a=-15, g=[50,-10,30,20,35,100]):
         Snake.__init__(self, n, c, sc, sb)
         self.avoidBoundaries = True
+        self.depthPerception = 20
         self.randomness = r
         self.preferSameDirection = p
+        self.avoidSnake = a
+        self.goal = {'apple': g[0], 'poison': g[1], 'orange': g[2], 'raspberry': g[3], 'blueberry': g[4], 'lemon': g[5]}
 
     def updateDirection(self, grid):
+        """
+        Responsible for determining opponent's direction choice.
+        Takes one argument - grid representation of playing board. Copied and marked as cells are 'explored'
+        Neighboring 
+        """
+        # copy grid to snake -- this will allow cells already searched to be marked 'visited'
+        self.grid = grid
+    
         # all directions have value adjusted
-        nextDirection = {LEFT:0, RIGHT:0, UP:0, DOWN:0}
+        self.nextDirection = {LEFT:0, RIGHT:0, UP:0, DOWN:0}
         
         # coords of own snake head
         x = self.coords[HEAD]['x']
@@ -305,64 +319,132 @@ class Opponent(Snake):
 
         # opposite direction kills snake
         if self.direction == LEFT:
-            nextDirection[RIGHT] = nextDirection[RIGHT] - 100
+            self.nextDirection[RIGHT] = self.nextDirection[RIGHT] - 1000
         elif self.direction == RIGHT:
-            nextDirection[LEFT] = nextDirection[LEFT] - 100
+            self.nextDirection[LEFT] = self.nextDirection[LEFT] - 1000
         elif self.direction == UP:
-            nextDirection[DOWN] = nextDirection[DOWN] - 100
+            self.nextDirection[DOWN] = self.nextDirection[DOWN] - 1000
         elif self.direction == DOWN:
-            nextDirection[UP] = nextDirection[UP]- 100
+            self.nextDirection[UP] = self.nextDirection[UP]- 1000
 
         # avoid boundaries
         if self.avoidBoundaries == True:
             if x == 0:
-                nextDirection[LEFT] = nextDirection[LEFT] - 100
+                self.nextDirection[LEFT] = self.nextDirection[LEFT] - 1000
             if x == CELLWIDTH - 1:
-                nextDirection[RIGHT] = nextDirection[RIGHT] - 100
+                self.nextDirection[RIGHT] = self.nextDirection[RIGHT] - 1000
             if y == (TOP_BUFFER / CELLSIZE):
-                nextDirection[UP] = nextDirection[UP] - 100
+                self.nextDirection[UP] = self.nextDirection[UP] - 1000
             if y == CELLHEIGHT + (TOP_BUFFER / CELLSIZE) - 1:
-                nextDirection[DOWN] = nextDirection[DOWN] - 100
+                self.nextDirection[DOWN] = self.nextDirection[DOWN] - 1000
                 
         # prefer same direction
-        nextDirection[self.direction] = nextDirection[self.direction] + self.preferSameDirection
+        self.nextDirection[self.direction] = self.nextDirection[self.direction] + self.preferSameDirection
 
         # avoid immediate snakes
         if grid.has_key((x-1,y)) and (grid[(x-1,y)] == 'snake'):
-            nextDirection[LEFT] = nextDirection[LEFT] - 100
+            self.nextDirection[LEFT] = self.nextDirection[LEFT] - 1000
         if grid.has_key((x+1,y)) and (grid[(x+1,y)] == 'snake'):
-            nextDirection[RIGHT] = nextDirection[RIGHT] - 100
+            self.nextDirection[RIGHT] = self.nextDirection[RIGHT] - 1000
         if grid.has_key((x,y-1)) and (grid[(x,y-1)] == 'snake'):
-            nextDirection[UP] = nextDirection[UP] - 100
+            self.nextDirection[UP] = self.nextDirection[UP] - 1000
         if grid.has_key((x,y+1)) and (grid[(x,y+1)] == 'snake'):
-            nextDirection[DOWN] = nextDirection[DOWN] - 100
+            self.nextDirection[DOWN] = self.nextDirection[DOWN] - 1000
+            
+        # 'look' to neighboring squares for possible snakes and fruits
+        self.look(x, y, self.depthPerception)
             
         # favor direction of apple -- this approach will need to be replaced eventually
-        for cell in grid:
-            if grid[cell] == 'apple':
-                # get x and y differences and favor direction of apple inversely proportionate to distance
-                x_difference = cell[0] - x
-                y_difference = cell[1] - y
-                if x_difference > 0:
-                    nextDirection[RIGHT] = nextDirection[RIGHT] + (CELLWIDTH - x_difference)
-                else:
-                    nextDirection[LEFT] = nextDirection[LEFT] + (CELLWIDTH - x_difference)
-                if y_difference < 0:
-                    nextDirection[UP] = nextDirection[UP] + (CELLHEIGHT - y_difference)
-                else:
-                    nextDirection[DOWN] = nextDirection[DOWN] + (CELLHEIGHT - y_difference)
+        #for cell in grid:
+        #    if grid[cell] == 'apple':
+        #        # get x and y differences and favor direction of apple inversely proportionate to distance
+        #        x_difference = cell[0] - x
+        #        y_difference = cell[1] - y
+        #        if x_difference > 0:
+        #            nextDirection[RIGHT] = nextDirection[RIGHT] + (CELLWIDTH - x_difference)
+        #        else:
+        #            nextDirection[LEFT] = nextDirection[LEFT] + (CELLWIDTH - x_difference)
+        #        if y_difference < 0:
+        #            nextDirection[UP] = nextDirection[UP] + (CELLHEIGHT - y_difference)
+        #        else:
+        #            nextDirection[DOWN] = nextDirection[DOWN] + (CELLHEIGHT - y_difference)
 
         # factor in randomness
-        for d in nextDirection:
-            nextDirection[d] = nextDirection[d] + random.randint(0,self.randomness)
+        for d in self.nextDirection:
+            self.nextDirection[d] = self.nextDirection[d] + random.randint(0,self.randomness)
             
         # report if debugging
         if DEBUG == True:
             print self.name
-            print nextDirection
+            print self.nextDirection
 
         # update snake direction to direction with highest score
-        self.direction = max(nextDirection, key=nextDirection.get)
+        self.direction = max(self.nextDirection, key=self.nextDirection.get)
+        
+    def look(self, x, y, depth):
+        """
+        recursively looks in all directions unless depth is exhausted.
+        visited coords are ignored.
+        coords containing a snake are affected by avoidSnake variable
+        """
+        if DEBUG == True:
+            print 'look for %s at (%s, %s)- depth %s' % (self.name, x, y, depth)
+        if depth < 1:
+            return
+        elif self.grid.has_key((x,y)):
+            if self.grid[(x,y)] == 'visited':
+                return
+            elif self.grid[(x,y)] == 'snake':
+                if DEBUG == True:
+                    print '..snake:'
+                self.influenceDirection(x, y, self.avoidSnake)
+                self.grid[(x,y)] = 'visited'
+                self.look(x-1, y, depth -1)
+                self.look(x+1, y, depth -1)
+                self.look(x, y+1, depth -1)
+                self.look(x, y-1, depth -1)
+            elif self.grid[(x,y)] != 0:  # implied fruit
+                fruit = self.grid[(x,y)]
+                if DEBUG == True:
+                    print '..fruit: %s' % (fruit)
+                self.influenceDirection(x, y, self.goal[fruit])
+                self.grid[(x,y)] = 'visited'
+                self.look(x-1, y, depth -1)
+                self.look(x+1, y, depth -1)
+                self.look(x, y+1, depth -1)
+                self.look(x, y-1, depth -1)
+            else: #empty cell
+                self.grid[(x,y)] = 'visited'
+                self.look(x-1, y, depth -1)
+                self.look(x+1, y, depth -1)
+                self.look(x, y+1, depth -1)
+                self.look(x, y-1, depth -1)
+        else: #bound collision
+            return
+
+    def influenceDirection(self, x, y, base):
+        """
+        Finds difference between (x,y) coord and point of origin.
+        Direction is then altered by 'base' amount, decayed 1 per distance from.
+        """
+        if DEBUG == True:
+            print '....%s -->' % (self.nextDirection)
+        xdiff = self.coords[HEAD]['x'] - x
+        ydiff = self.coords[HEAD]['y'] - y
+        if xdiff > 0:  # positive = left
+            if base - xdiff > 0:
+                self.nextDirection[LEFT] = self.nextDirection[LEFT] + base - xdiff
+        elif xdiff < 0:  # negative = right
+            if base - (xdiff * -1) > 0:
+                self.nextDirection[RIGHT] = self.nextDirection[RIGHT] + base - (xdiff * -1)
+        if ydiff > 0:  # positive = up
+            if base - ydiff > 0:
+                self.nextDirection[UP] = self.nextDirection[UP] + base - ydiff
+        elif ydiff < 0:  # negative = down
+            if base - (ydiff * -1) > 0:
+                self.nextDirection[DOWN] = self.nextDirection[DOWN] + base - (ydiff * -1)
+        if DEBUG == True:
+            print '....%s' % (self.nextDirection)
 
     def getPlace(self, totaldead, totalsnakes):
         return Snake.getPlace(self, totaldead, totalsnakes)
@@ -857,13 +939,13 @@ def main():
                 elif partybutton.pressed(mouse):
                     pygame.event.get()
                     game = GameData(25, 12, 0, 4)
-                    runGame(game, [SNAKEY, LINUS, WIGGLES, GIGGLES])
+                    runGame(game, [SNAKEY, LINUS, WIGGLES, GOOBER])
                     showGameOverScreen()
                 elif tronybutton.pressed(mouse):
                     pygame.event.get()
                     game = GameData(25, 12, 0, 0)
                     game.trailing = True
-                    runGame(game, [SNAKEY, LINUS, WIGGLES, GIGGLES])
+                    runGame(game, [SNAKEY, LINUS, WIGGLES, GOOBER])
                     showGameOverScreen()
                 elif instructbutton.pressed(mouse):
                     showInstructScreen()
@@ -884,13 +966,13 @@ def main():
                 elif event.key == K_p:
                     pygame.event.get()
                     game = GameData(25, 12, 0, 4)
-                    runGame(game, [SNAKEY, LINUS, WIGGLES, GIGGLES])
+                    runGame(game, [SNAKEY, LINUS, WIGGLES, GOOBER])
                     showGameOverScreen()
                 elif event.key == K_t:
                     pygame.event.get()
                     game = GameData(25, 12, 0, 0)
                     game.trailing = True
-                    runGame(game, [SNAKEY, LINUS, WIGGLES, GIGGLES])
+                    runGame(game, [SNAKEY, LINUS, WIGGLES, GOOBER])
                     showGameOverScreen()
                 elif event.key == K_i:
                     showInstructScreen()
@@ -918,16 +1000,16 @@ def runGame(game, players=[]):
             allsnake.append(player)
             pos = pos + 1
         elif snake == LINUS:
-            linus = Opponent(LINUS, getStartCoords(pos), IVORY, COBALTGREEN, 5, 20)
+            linus = Opponent(LINUS, getStartCoords(pos), IVORY, COBALTGREEN, 5, 20, -20)
             allsnake.append(linus)
             pos = pos + 1
         elif snake == WIGGLES:
-            wiggles = Opponent(WIGGLES, getStartCoords(pos), OLIVEGREEN, PURPLE, 20, 5)
+            wiggles = Opponent(WIGGLES, getStartCoords(pos), SLATEBLUE, WHITE, 20, 5, -5, [60, -10, 40, 10, 25, 100])
             allsnake.append(wiggles)
             pos = pos + 1
-        elif snake == GIGGLES:
-            giggles = Opponent(GIGGLES, getStartCoords(pos), PURPLE, EMERALDGREEN, 10, 10)
-            allsnake.append(giggles)
+        elif snake == GOOBER:
+            goober = Opponent(GOOBER, getStartCoords(pos), PINK, RED, 10, 10, -15, [30, 5, 60, 30, 35, 100])
+            allsnake.append(goober)
             pos = pos + 1
 
     # create initial apple(s)
@@ -1209,16 +1291,16 @@ def showSelectPlayersScreen():
     playerbuttons.append(playerlinusbutton)
     playerwigglesbutton = SelectButton('(w)iggles', WINDOWWIDTH / 3, WINDOWHEIGHT * 4/7)
     playerbuttons.append(playerwigglesbutton)
-    playergigglesbutton = SelectButton('(g)iggles', WINDOWWIDTH / 3, WINDOWHEIGHT * 5/7)
-    playerbuttons.append(playergigglesbutton)
+    playergooberbutton = SelectButton('(g)oober', WINDOWWIDTH / 3, WINDOWHEIGHT * 5/7)
+    playerbuttons.append(playergooberbutton)
     
     opponentbuttons = []
     opponentlinusbutton = SelectButton('(l)inus', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 3/7, True)
     opponentbuttons.append(opponentlinusbutton)
     opponentwigglesbutton = SelectButton('(w)iggles', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 4/7)
     opponentbuttons.append(opponentwigglesbutton)
-    opponentgigglesbutton = SelectButton('(g)iggles', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 5/7)
-    opponentbuttons.append(opponentgigglesbutton)
+    opponentgooberbutton = SelectButton('(g)oober', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 5/7)
+    opponentbuttons.append(opponentgooberbutton)
     
     
     cancelbutton = Button('(e)xit', WINDOWWIDTH / 3, WINDOWHEIGHT * 6/7)
@@ -1267,14 +1349,14 @@ def showSelectPlayersScreen():
                         final.append(LINUS)
                     elif playerwigglesbutton.active:
                         final.append(WIGGLES)
-                    elif playergigglesbutton.active:
-                        final.append(GIGGLES)
+                    elif playergooberbutton.active:
+                        final.append(GOOBER)
                     if opponentlinusbutton.active:
                         final.append(LINUS)
                     elif opponentwigglesbutton.active:
                         final.append(WIGGLES)
-                    elif opponentgigglesbutton.active:
-                        final.append(GIGGLES)
+                    elif opponentgooberbutton.active:
+                        final.append(GOOBER)
                     return final
 
             elif event.type == KEYDOWN:
@@ -1289,7 +1371,7 @@ def showSelectPlayersScreen():
                     opponentwigglesbutton.setActive(opponentbuttons)
                 elif event.key == K_g:
                     pygame.event.get()
-                    opponentgigglesbutton.setActive(opponentbuttons)
+                    opponentgooberbutton.setActive(opponentbuttons)
                 elif event.key == K_d:
                     final = []
                     if playersnakeybutton.active:
@@ -1298,14 +1380,14 @@ def showSelectPlayersScreen():
                         final.append(LINUS)
                     elif playerwigglesbutton.active:
                         final.append(WIGGLES)
-                    elif playergigglesbutton.active:
-                        final.append(GIGGLES)
+                    elif playergooberbutton.active:
+                        final.append(GOOBER)
                     if opponentlinusbutton.active:
                         final.append(LINUS)
                     elif opponentwigglesbutton.active:
                         final.append(WIGGLES)
-                    elif opponentgigglesbutton.active:
-                        final.append(GIGGLES)
+                    elif opponentgooberbutton.active:
+                        final.append(GOOBER)
                     return final
                 elif event.key == K_e:
                     pygame.event.get()
