@@ -310,7 +310,7 @@ class Opponent(Snake):
         # copy grid to snake -- this will allow cells already searched to be marked 'visited'
         self.grid = grid
     
-        # all directions have value adjusted
+        # all directions have value adjusted -- reset
         self.nextDirection = {LEFT:0, RIGHT:0, UP:0, DOWN:0}
         
         # coords of own snake head
@@ -387,8 +387,8 @@ class Opponent(Snake):
         visited coords are ignored.
         coords containing a snake are affected by avoidSnake variable
         """
-        if DEBUG == True:
-            print 'look for %s at (%s, %s)- depth %s' % (self.name, x, y, depth)
+        #if DEBUG == True:
+        #    print 'look for %s at (%s, %s)- depth %s' % (self.name, x, y, depth)
         if depth < 1:
             return
         elif self.grid.has_key((x,y)):
@@ -428,21 +428,21 @@ class Opponent(Snake):
         Direction is then altered by 'base' amount, decayed 1 per distance from.
         """
         if DEBUG == True:
-            print '....%s -->' % (self.nextDirection)
+            print '....%s (%s, %s)-->' % (self.nextDirection, x, y)
         xdiff = self.coords[HEAD]['x'] - x
         ydiff = self.coords[HEAD]['y'] - y
         if xdiff > 0:  # positive = left
-            if base - xdiff > 0:
+            if (base - xdiff > 0 and base > 0) or (base - xdiff < 0 and base < 0):
                 self.nextDirection[LEFT] = self.nextDirection[LEFT] + base - xdiff
         elif xdiff < 0:  # negative = right
-            if base - (xdiff * -1) > 0:
-                self.nextDirection[RIGHT] = self.nextDirection[RIGHT] + base - (xdiff * -1)
+            if (base + xdiff > 0 and base > 0) or (base + xdiff < 0 and base < 0):
+                self.nextDirection[RIGHT] = self.nextDirection[RIGHT] + base + xdiff
         if ydiff > 0:  # positive = up
-            if base - ydiff > 0:
+            if (base - ydiff > 0 and base > 0) or (base - ydiff < 0 and base < 0):
                 self.nextDirection[UP] = self.nextDirection[UP] + base - ydiff
         elif ydiff < 0:  # negative = down
-            if base - (ydiff * -1) > 0:
-                self.nextDirection[DOWN] = self.nextDirection[DOWN] + base - (ydiff * -1)
+            if (base + ydiff > 0 and base > 0) or (base + ydiff < 0 and base < 0):
+                self.nextDirection[DOWN] = self.nextDirection[DOWN] + base + ydiff
         if DEBUG == True:
             print '....%s' % (self.nextDirection)
 
@@ -672,27 +672,30 @@ class GameData:
     Responsible for dynamics for a particular game instance.
     fruitEaten - a dictionary containing a numeric tally of each fruit eaten.
     speedTrigger - the frequency (based on apples consumed) in which gamespeed is increased by one.
-    bonusTrigger - the frequency (based on apples consumed) in which a bonus game - runBonus() - is launched.
+    bonusFruitTrigger - the frequency (based on apples consumed) in which a bonus game is launched.
+    bonusSnakeTrigger - the frequency (based on apples consumed) in which an egg is placed on screen.
     easyTrigger - a threshold (apples consumed); once reached fruit can be placed anywhere on screen (as opposed to away from edges).
     currentplace - the current 'place' of snake. When snake has died.
     apples - number of apples on screen.
-    typeMin - the minimum value in determining bonus game type.
-    typeMax - the maximum value in determining bonus game type.
     """
-    def __init__(self, st=20, bt=10, et=20, a=1, tmin=1, tmax=10):
+    def __init__(self, st=20, bft=10, et=20, a=1):
         self.fruitEaten = {'apple':0, 'poison':0, 'orange':0, 
                            'raspberry':0, 'blueberry':0, 'lemon':0}
         self.speedTrigger = st
-        self.bonusTrigger = bt
+        self.bonusFruitTrigger = bft
+        self.bonusSnakeTrigger = False
         self.easyTrigger = et
         self.currentplace = 1
         self.apples = a
-        self.typeMin = tmin
-        self.typeMax = tmax
         self.basespeed = FPS
         self.currentspeed = self.basespeed
         self.slowtimer = 0
         self.trailing = False
+        self.poisonDrop = 4
+        self.orangeDrop = 5
+        self.raspberryDrop = 6
+        self.blueberryDrop = False
+        self.lemonDrop = False
 
     def checkSpeedTrigger(self):
         """
@@ -707,7 +710,7 @@ class GameData:
         """
         Returns true if number of apples consumed modulo bonusTrigger equals zero.
         """
-        if self.fruitEaten['apple'] % self.bonusTrigger == 0:
+        if self.fruitEaten['apple'] % self.bonusFruitTrigger == 0:
             return True
         else:
             return False
@@ -776,8 +779,36 @@ class GameData:
         Decrements slowtimer by one
         """
         self.slowtimer = self.slowtimer - 1
+        
+    def runDrop(self, allfruit, allsnake):
+        """
+        Adds fruit randomly to screen.
+        If newapple is turned on, replaces apple that was eaten.
+        """
+        # chance of poison drop
+        if self.poisonDrop != False and random.randint(1,self.poisonDrop) == 1:
+            p = Poison(allfruit, allsnake, self)
+            allfruit.append(p)
+        # chance of orange drop
+        if self.orangeDrop != False and random.randint(1,self.orangeDrop) == 1:
+            o = Orange(allfruit, allsnake, self)
+            allfruit.append(o)
+        # chance of raspberry drop
+        if self.raspberryDrop != False and random.randint(1,self.raspberryDrop) == 1:
+            r = Raspberry(allfruit, allsnake, self)
+            allfruit.append(r)
+        # chance of blueberry drop
+        if self.blueberryDrop != False and random.randint(1,self.blueberryDrop) == 1:
+            b = Blueberry(allfruit, allsnake, self)
+            allfruit.append(b)
+        if self.lemonDrop != False and random.randint(1,self.lemonDrop) == 1:
+            l = Lemon(allfruit, allsnake, self)
+            allfruit.append(l)
+        # create new apple
+        a = Apple(allfruit, allsnake, self)
+        allfruit.append(a)
 
-    def runBonus(self):
+    def runBonusFruit(self, allfruit, allsnake):
         """
         Returns a list containing fruit (as strings) to be added to game from bonus game.
         An integer (determined randomly between typeMin and typeMax) corresponds to bonus game run.
@@ -785,25 +816,25 @@ class GameData:
         Default will contain an assortment of fruit.
         """
         bonus = []
-        type = random.randint(self.typeMin, self.typeMax)
-        if type == LEMONBONUS:
-            bonus.append('lemon')
-        elif type == POISONBONUS:
+        type = random.randint(1, 12)
+        
+        # based on bonus type, create fruits
+        if type == 1:
             counter = random.randint(20,35)
             while counter > 0:
                 bonus.append('poison')
                 counter = counter - 1
-        elif type == ORANGEBONUS:
+        elif type == 2:
             counter = random.randint(20,35)
             while counter > 0:
                 bonus.append('orange')
                 counter = counter - 1
-        elif type == RASPBERRYBONUS:
+        elif type == 3:
             counter = random.randint(20,35)
             while counter > 0:
                 bonus.append('raspberry')
                 counter = counter - 1
-        elif type == BLUEBERRYBONUS:
+        elif type == 4:
             counter = random.randint(20,30)
             while counter > 0:
                 bonus.append('blueberry')
@@ -825,7 +856,23 @@ class GameData:
             while counter > 0:
                 bonus.append('blueberry')
                 counter = counter - 1
-        return bonus
+        
+        # add fruits
+        for bonusfruit in bonus:
+            if bonusfruit == 'poison':
+                f = Poison(allfruit, allsnake, self)
+            elif bonusfruit == 'orange':
+                f = Orange(allfruit, allsnake, self)
+            elif bonusfruit == 'raspberry':
+                f = Raspberry(allfruit, allsnake, self)
+            elif bonusfruit == 'blueberry':
+                f = Blueberry(allfruit, allsnake, self)
+            elif bonusfruit == 'lemon':
+                f = Lemon(allfruit, allsnake, self)
+            allfruit.append(f)
+
+    def runBonusEgg(self):
+        return
 
 
 class Button():
@@ -939,7 +986,8 @@ def main():
                 elif partybutton.pressed(mouse):
                     pygame.event.get()
                     game = GameData(25, 12, 0, 4)
-                    runGame(game, [SNAKEY, LINUS, WIGGLES, GOOBER])
+                    players = getPlayers()
+                    runGame(game, players)
                     showGameOverScreen()
                 elif tronybutton.pressed(mouse):
                     pygame.event.get()
@@ -966,7 +1014,8 @@ def main():
                 elif event.key == K_p:
                     pygame.event.get()
                     game = GameData(25, 12, 0, 4)
-                    runGame(game, [SNAKEY, LINUS, WIGGLES, GOOBER])
+                    players = getPlayers()
+                    runGame(game, players)
                     showGameOverScreen()
                 elif event.key == K_t:
                     pygame.event.get()
@@ -1152,36 +1201,12 @@ def runGame(game, players=[]):
                         # check for speed increase
                         if game.checkSpeedTrigger():
                             game.updateBaseSpeed(1)
-                        # check for bonus drop
+                        # check for fruit bonus drop
                         if game.checkBonusTrigger():
-                            bonus = game.runBonus()
-                            for bonusfruit in bonus:
-                                if bonusfruit == 'poison':
-                                    f = Poison(allfruit, allsnake, game)
-                                elif bonusfruit == 'orange':
-                                    f = Orange(allfruit, allsnake, game)
-                                elif bonusfruit == 'raspberry':
-                                    f = Raspberry(allfruit, allsnake, game)
-                                elif bonusfruit == 'blueberry':
-                                    f = Blueberry(allfruit, allsnake, game)
-                                else:
-                                    f = Lemon(allfruit, allsnake, game)
-                                allfruit.append(f)
-                        # chance of poison drop
-                        if random.randint(1,4) == 1:
-                            p = Poison(allfruit, allsnake, game)
-                            allfruit.append(p)
-                        # chance of orange drop
-                        if random.randint(1,5) == 1:
-                            o = Orange(allfruit, allsnake, game)
-                            allfruit.append(o)
-                        # chance of raspberry drop
-                        if random.randint(1,6) == 1:
-                            r = Raspberry(allfruit, allsnake, game)
-                            allfruit.append(r)
-                        # create new apple
-                        a = Apple(allfruit, allsnake, game)
-                        allfruit.append(a)
+                            game.runBonusFruit(allfruit, allsnake)
+                        # run usual fruid drop
+                        game.runDrop(allfruit, allsnake)
+                    # blueberries have special speed adjusting properties
                     elif fruit.__class__ == Blueberry:
                         # update game frames to be 'slow' by 7 seconds
                         game.slowtimer = game.slowtimer + game.currentspeed * 7
@@ -1225,6 +1250,7 @@ def runGame(game, players=[]):
                 if fruit.updateTimer() == False:
                     allfruit.remove(fruit)
 
+        # draw everything to screen
         DISPLAYSURF.fill(BACKGROUNDCOLOR)
         drawGrid()
         for fruit in allfruit:
@@ -1237,6 +1263,7 @@ def runGame(game, players=[]):
         for snake in allsnake:
             snake.drawScore(position, allsnake)
             position = position + 1
+
         # if player is dead, print extra messages
         if player == False or player.alive == False:
             endMessage = 'press (e) to end game early'
@@ -1279,6 +1306,25 @@ def waitForInput():
                 if pygame.mouse.get_pressed() != None:
                     return
 
+def getPlayers(num=3):
+    """
+    Returns list containing Snakey and a number (only argument) of random snakes.
+    """
+    players = [SNAKEY]
+
+    while num > 0:
+        nextPlayer = ''
+        randPlayer = random.randint(1,3)
+        if randPlayer == 1:
+            nextPlayer = LINUS
+        elif randPlayer == 2:
+            nextPlayer = WIGGLES
+        elif randPlayer == 3:
+            nextPlayer = GOOBER
+        players.append(nextPlayer)
+        num = num - 1
+        
+    return players
 
 def showSelectPlayersScreen():
     """
