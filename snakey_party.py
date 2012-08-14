@@ -113,8 +113,6 @@ class Snake:
             self.coords = getStartCoords(1)
         else:
             self.coords = c
-        # ensure snake length
-        assert len(self.coords) > 1
         
         # determine direction -- currently only supports right or left
         if self.coords[0]['x'] > self.coords[1]['x']:
@@ -180,16 +178,34 @@ class Snake:
             return '3rd'
         else:
             return 'last'
+            
+    def checkCoords(self, x, y):
+        """
+        Returns True if snake (head) matches (x,y) coordinates provided.
+        Will always return False if coordinates < 1.
+        """
+        if len(self.coords) > 0:
+            if self.coords[HEAD]['x'] == x and self.coords[HEAD]['y'] == y:
+                return True
+        return False
+        
+    def getCoords(self, axis):
+        """
+        Returns x or y (axis) coordinates of head of snake.
+        Will always return False if coordinates < 1.
+        """
+        if len(self.coords) > 0:
+            return self.coords[HEAD][axis]
 
     def boundsCollision(self):
         """
         This returns True if snake (head) is ever out of grid parameters.
         """
         # check if out of bounds -- offset on on 'y' for buffer.
-        if self.coords[HEAD]['x'] == -1 or \
-           self.coords[HEAD]['x'] == CELLWIDTH or \
-           self.coords[HEAD]['y'] == -1 + (TOP_BUFFER / CELLSIZE) or \
-           self.coords[HEAD]['y'] == CELLHEIGHT + (TOP_BUFFER / CELLSIZE):
+        if self.getCoords('x') == -1 or \
+           self.getCoords('x') == CELLWIDTH or \
+           self.getCoords('y') == -1 + (TOP_BUFFER / CELLSIZE) or \
+           self.getCoords('y') == CELLHEIGHT + (TOP_BUFFER / CELLSIZE):
             return True
         else:
             return False
@@ -197,18 +213,20 @@ class Snake:
     def snakeCollision(self, snake):
         """
         This returns True if snake (head) collides with any part of a given snake (outside of own head if checking against self).
+        Will always return False if coordinates of self or snake < 1.
         """
-        if self is snake:
-            # exclude head if checked against self
-            for snakebody in snake.coords[1:]:
-                if snakebody['x'] == self.coords[HEAD]['x'] and \
-                   snakebody['y'] == self.coords[HEAD]['y']:
-                    return True    
-        else:
-            for snakebody in snake.coords:
-                if snakebody['x'] == self.coords[HEAD]['x'] and \
-                   snakebody['y'] == self.coords[HEAD]['y']:
-                    return True
+        if len(self.coords) > 0 and len(snake.coords) > 0:
+            if self is snake:
+                # exclude head if checked against self
+                for snakebody in snake.coords[1:]:
+                    if snakebody['x'] == self.coords[HEAD]['x'] and \
+                       snakebody['y'] == self.coords[HEAD]['y']:
+                        return True    
+            else:
+                for snakebody in snake.coords:
+                    if snakebody['x'] == self.coords[HEAD]['x'] and \
+                       snakebody['y'] == self.coords[HEAD]['y']:
+                        return True
         # no collision
         return False
         
@@ -216,8 +234,8 @@ class Snake:
         """
         This returns True if snake (head) has collided with a given fruit.
         """
-        if self.coords[HEAD]['x'] == fruit.coords['x'] and \
-           self.coords[HEAD]['y'] == fruit.coords['y']:
+        if self.getCoords('x') == fruit.coords['x'] and \
+           self.getCoords('y') == fruit.coords['y']:
             return True
         else:
             return False
@@ -247,23 +265,23 @@ class Snake:
 
             # determine new head coordinates by direction
             if self.direction == UP:
-                newhead = {'x': self.coords[HEAD]['x'], 
-                           'y': self.coords[HEAD]['y'] - 1}
+                newhead = {'x': self.getCoords('x'), 
+                           'y': self.getCoords('y') - 1}
             elif self.direction == DOWN:
-                newhead = {'x': self.coords[HEAD]['x'], 
-                           'y': self.coords[HEAD]['y'] + 1}
+                newhead = {'x': self.getCoords('x'), 
+                           'y': self.getCoords('y') + 1}
             elif self.direction == LEFT:
-                newhead = {'x': self.coords[HEAD]['x'] - 1, 
-                           'y': self.coords[HEAD]['y']}
+                newhead = {'x': self.getCoords('x') - 1, 
+                           'y': self.getCoords('y')}
             elif self.direction == RIGHT:
-                newhead = {'x': self.coords[HEAD]['x'] + 1, 
-                           'y': self.coords[HEAD]['y']}
+                newhead = {'x': self.getCoords('x') + 1, 
+                           'y': self.getCoords('y')}
 
             # insert new head segment
             self.coords.insert(HEAD, newhead)
 
-        # dead snake -- remove last segment as long as it isn't the last
-        elif len(self.coords) > 1:
+        # dead snake -- remove last segment
+        elif len(self.coords) > 0:
             del self.coords[-1]
             
     def drawSnake(self):
@@ -314,8 +332,8 @@ class Opponent(Snake):
         self.nextDirection = {LEFT:0, RIGHT:0, UP:0, DOWN:0}
         
         # coords of own snake head
-        x = self.coords[HEAD]['x']
-        y = self.coords[HEAD]['y']
+        x = self.getCoords('x')
+        y = self.getCoords('y')
 
         # opposite direction kills snake
         if self.direction == LEFT:
@@ -429,8 +447,8 @@ class Opponent(Snake):
         """
         if DEBUG == True:
             print '....%s (%s, %s)-->' % (self.nextDirection, x, y)
-        xdiff = self.coords[HEAD]['x'] - x
-        ydiff = self.coords[HEAD]['y'] - y
+        xdiff = self.getCoords('x') - x
+        ydiff = self.getCoords('y') - y
         if xdiff > 0:  # positive = left
             if (base - xdiff > 0 and base > 0) or (base - xdiff < 0 and base < 0):
                 self.nextDirection[LEFT] = self.nextDirection[LEFT] + base - xdiff
@@ -457,6 +475,12 @@ class Opponent(Snake):
 
     def updateMultiplier(self, multiplier_input, timer_input):
         Snake.updateMultiplier(self, multiplier_input, timer_input)
+        
+    def checkCoords(self, x, y):
+        return Snake.checkCoords(self, x, y)
+        
+    def getCoords(self, axis):
+        return Snake.getCoords(self, axis)
 
     def boundsCollision(self):
         return Snake.boundsCollision(self)
@@ -504,7 +528,7 @@ class Fruit:
                     conflict = True
             # ensure coordinates are not already occupied by snake head
             for snake in allsnake:
-                if snake.coords[HEAD]['x'] == x and snake.coords[HEAD]['y'] == y:
+                if snake.getCoords('x') == x and snake.getCoords('y') == y:
                     conflict = True
             if conflict == False:
                 return {'x':x, 'y':y}
@@ -737,6 +761,15 @@ class GameData:
                 snake.place = self.currentplace
                 self.currentplace = self.currentplace + 1
         return gameover
+        
+    #def removeDead(self, allsnake):
+    #    """
+    #    Removes all dead snakes.
+    #    Will only remove if length is minimum.
+    #    """
+    #    for snake in allsnake:
+    #        if snake.alive == False and len(snake.coords) <= 1:
+    #            allsnake.remove(snake)
         
     def updateBaseSpeed(self, value):
         """
@@ -1217,6 +1250,9 @@ def runGame(game, players=[]):
         if game.checkSnakeDeath(allsnake):
             showGameStats(allsnake)
             return 1
+            
+        # clean up dead snakes
+        #game.removeDead(allsnake)
 
         # check for size changes / move snake
         for snake in allsnake:
