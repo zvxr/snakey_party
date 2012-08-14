@@ -75,14 +75,10 @@ ORANGETIMER = (35, 65)
 RASPBERRYTIMER = (30, 45)
 BLUEBERRYTIMER = (20, 40)
 LEMONTIMER = (100, 100)
+EGGTIMER = (40, 70)
 
+# target FPS when Blueberry (slow) is in effect.
 FREEZING_POINT = 8
-
-POISONBONUS = 7
-ORANGEBONUS = 8
-RASPBERRYBONUS = 9
-BLUEBERRYBONUS = 10
-LEMONBONUS = 11
 
 
 class Snake:
@@ -114,11 +110,16 @@ class Snake:
         else:
             self.coords = c
         
-        # determine direction -- currently only supports right or left
-        if self.coords[0]['x'] > self.coords[1]['x']:
-            self.direction = RIGHT
+        # determine direction if length supports
+        if len(self.coords) > 1:
+            if self.coords[0]['x'] > self.coords[1]['x']:
+                self.direction = RIGHT
+            else:
+                self.direction = LEFT
+        # egg -- for now until AI direction fixed
         else:
-            self.direction = LEFT
+             self.direction = LEFT   
+        
         self.color = sc
         self.colorCurrent = self.color
         self.colorBorder = sb
@@ -128,8 +129,9 @@ class Snake:
         self.multipliertimer = 0
         self.score = 0
         self.place = False
-        self.fruitEaten = {'apple':0, 'poison':0, 'orange':0, 
-                           'raspberry':0, 'blueberry':0, 'lemon':0}
+        self.scored = True
+        self.fruitEaten = {'apple':0, 'poison':0, 'orange':0, 'raspberry':0,
+                           'blueberry':0, 'lemon':0, 'egg':0}
 
     def updateScore(self, points_input):
         """
@@ -151,30 +153,30 @@ class Snake:
         self.multiplier = multiplier_input
         self.multipliertimer = self.multipliertimer + timer_input
         
-    def getPlace(self, totaldead, totalsnakes):
+    def getPlace(self, totaldead, totalscored):
         """
         Returns a string containing the 'place' of a snake (longest lasting = 1st)
         If game aborted early, will grant all living snakes '1st (alive)'
         """
-        totalalive = totalsnakes - totaldead
+        totalalive = totalscored - totaldead
 
         # snake not dead
         if self.place == False:
             return '1st (alive)'
         # if not aborted early
         elif totalalive == 0:
-            if self.place == totalsnakes:
+            if self.place == totalscored:
                 return '1st'
-            elif self.place + 1 == totalsnakes:
+            elif self.place + 1 == totalscored:
                 return '2nd'
-            elif self.place + 2 == totalsnakes:
+            elif self.place + 2 == totalscored:
                 return '3rd'
             else:
                 return 'last'
         # aborted early; factor in living snakes
-        elif self.place == totalsnakes - totalalive:
+        elif self.place == totalscored - totalalive:
             return '2nd'
-        elif self.place + 1 == totalsnakes - totalalive:
+        elif self.place + 1 == totalscored - totalalive:
             return '3rd'
         else:
             return 'last'
@@ -302,7 +304,12 @@ class Snake:
         """
         scoreSurf = BASICFONT.render('%s: %s' % (self.name, self.score), True, self.colorCurrent)
         scoreRect = scoreSurf.get_rect()
-        scoreRect.topleft = (getPosition(position, allsnake), 1)
+        # get number of snakes in allsnake that will be scored.
+        totalscored = 0
+        for snake in allsnake:
+            if snake.scored == True:
+                totalscored = totalscored + 1
+        scoreRect.topleft = (getPosition(position, allsnake, totalscored), 1)
         DISPLAYSURF.blit(scoreSurf, scoreRect)
         
         
@@ -689,6 +696,46 @@ class Lemon(Fruit):
 
     def drawFruit(self):
         Fruit.drawFruit(self)
+        
+        
+class Egg(Fruit):
+    """
+    Eggs spawn another snake if not eaten.
+    """
+    def __init__(self, allfruit, allsnake, game):
+        self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, game)
+        self.timer = random.randint(EGGTIMER[0], EGGTIMER[1])
+        self.color = WHITE
+        self.points = 500
+        self.growth = 1
+
+    def isEaten(self, snake, game):
+        snake.fruitEaten['egg'] = snake.fruitEaten['egg'] + 1
+        game.fruitEaten['egg'] = game.fruitEaten['egg'] + 1
+        snake.updateScore(self.points)
+        snake.updateGrowth(self.growth)
+
+    def updateTimer(self):
+        return Fruit.updateTimer(self)
+
+    def isHatched(self, allsnake):
+        """
+        Add new snake with coords as coords of fruit, and growth of 3.
+        Snake is not scored (name and score does not appear).
+        """
+        junior = Opponent('junior', [{'x':self.coords['x'] , 'y':self.coords['y']}], PINK, GREEN, 10, 10, -15, [30, 5, 60, 30, 35, 100])
+        junior.growth = 3
+        junior.scored = False
+        allsnake.append(junior)
+
+    def drawFruit(self):
+        """
+        Responsible for drawing image to screen.
+        """
+        x = self.coords['x'] * CELLSIZE
+        y = self.coords['y'] * CELLSIZE
+        fruitRect = pygame.Rect(x, y, CELLSIZE, CELLSIZE)
+        pygame.draw.rect(DISPLAYSURF, self.color, fruitRect)
 
 
 class GameData:
@@ -703,8 +750,8 @@ class GameData:
     apples - number of apples on screen.
     """
     def __init__(self, st=20, bft=10, et=20, a=1):
-        self.fruitEaten = {'apple':0, 'poison':0, 'orange':0, 
-                           'raspberry':0, 'blueberry':0, 'lemon':0}
+        self.fruitEaten = {'apple':0, 'poison':0, 'orange':0, 'raspberry':0,
+                           'blueberry':0, 'lemon':0, 'egg':0}
         self.speedTrigger = st
         self.bonusFruitTrigger = bft
         self.bonusSnakeTrigger = False
@@ -718,8 +765,9 @@ class GameData:
         self.poisonDrop = 4
         self.orangeDrop = 5
         self.raspberryDrop = 6
-        self.blueberryDrop = False
+        self.blueberryDrop = 20
         self.lemonDrop = False
+        self.eggDrop = 12
 
     def checkSpeedTrigger(self):
         """
@@ -755,21 +803,13 @@ class GameData:
         """
         gameover = True
         for snake in allsnake:
-            if snake.alive == True:
-                gameover = False
-            elif snake.place == False:
-                snake.place = self.currentplace
-                self.currentplace = self.currentplace + 1
+            if snake.scored == True:
+                if snake.alive == True:
+                    gameover = False
+                elif snake.place == False:
+                    snake.place = self.currentplace
+                    self.currentplace = self.currentplace + 1
         return gameover
-        
-    #def removeDead(self, allsnake):
-    #    """
-    #    Removes all dead snakes.
-    #    Will only remove if length is minimum.
-    #    """
-    #    for snake in allsnake:
-    #        if snake.alive == False and len(snake.coords) <= 1:
-    #            allsnake.remove(snake)
         
     def updateBaseSpeed(self, value):
         """
@@ -834,9 +874,14 @@ class GameData:
         if self.blueberryDrop != False and random.randint(1,self.blueberryDrop) == 1:
             b = Blueberry(allfruit, allsnake, self)
             allfruit.append(b)
+        # chance of lemon drop
         if self.lemonDrop != False and random.randint(1,self.lemonDrop) == 1:
             l = Lemon(allfruit, allsnake, self)
             allfruit.append(l)
+        # chance of egg drop
+        if self.eggDrop != False and random.randint(1,self.eggDrop) == 1:
+            e = Egg(allfruit, allsnake, self)
+            allfruit.append(e)
         # create new apple
         a = Apple(allfruit, allsnake, self)
         allfruit.append(a)
@@ -849,25 +894,30 @@ class GameData:
         Default will contain an assortment of fruit.
         """
         bonus = []
-        type = random.randint(1, 12)
+        type = random.randint(1, 20)
         
         # based on bonus type, create fruits
         if type == 1:
+            counter = random.randint(5,20)
+            while counter > 0:
+                bonus.append('egg')
+                counter = counter - 1
+        elif type == 2 or type == 3:
             counter = random.randint(20,35)
             while counter > 0:
                 bonus.append('poison')
                 counter = counter - 1
-        elif type == 2:
+        elif type == 4 or type == 5:
             counter = random.randint(20,35)
             while counter > 0:
                 bonus.append('orange')
                 counter = counter - 1
-        elif type == 3:
+        elif type == 6 or type == 7:
             counter = random.randint(20,35)
             while counter > 0:
                 bonus.append('raspberry')
                 counter = counter - 1
-        elif type == 4:
+        elif type == 8:
             counter = random.randint(20,30)
             while counter > 0:
                 bonus.append('blueberry')
@@ -902,10 +952,9 @@ class GameData:
                 f = Blueberry(allfruit, allsnake, self)
             elif bonusfruit == 'lemon':
                 f = Lemon(allfruit, allsnake, self)
+            elif bonusfruit == 'egg':
+                f = Egg(allfruit, allsnake, self)
             allfruit.append(f)
-
-    def runBonusEgg(self):
-        return
 
 
 class Button():
@@ -1250,9 +1299,6 @@ def runGame(game, players=[]):
         if game.checkSnakeDeath(allsnake):
             showGameStats(allsnake)
             return 1
-            
-        # clean up dead snakes
-        #game.removeDead(allsnake)
 
         # check for size changes / move snake
         for snake in allsnake:
@@ -1284,6 +1330,9 @@ def runGame(game, players=[]):
         for fruit in allfruit:
             if fruit.__class__ != Apple:
                 if fruit.updateTimer() == False:
+                    # if timer on Egg expires, hatch new snake
+                    if fruit.__class__ == Egg:
+                        fruit.isHatched(allsnake)
                     allfruit.remove(fruit)
 
         # draw everything to screen
@@ -1294,11 +1343,12 @@ def runGame(game, players=[]):
         for snake in allsnake:
             snake.drawSnake()
             
-        # print scores
+        # print scores only if snake is scored
         position = 1
         for snake in allsnake:
-            snake.drawScore(position, allsnake)
-            position = position + 1
+            if snake.scored == True:
+                snake.drawScore(position, allsnake)
+                position = position + 1
 
         # if player is dead, print extra messages
         if player == False or player.alive == False:
@@ -1342,6 +1392,7 @@ def waitForInput():
                 if pygame.mouse.get_pressed() != None:
                     return
 
+
 def getPlayers(num=3):
     """
     Returns list containing Snakey and a number (only argument) of random snakes.
@@ -1361,6 +1412,7 @@ def getPlayers(num=3):
         num = num - 1
         
     return players
+
 
 def showSelectPlayersScreen():
     """
@@ -1522,28 +1574,32 @@ def terminate():
 
 def showGameStats(allsnake):
     """
-    Displays game stats for all snakes at end of game.
+    Displays game stats for all snakes (scored) at end of game.
     Returns when any key pressed.
     """
-    totaldead = 0 #stil lneeds to be fixed
+    totaldead = 0
+    totalscored = 0
     for snake in allsnake:
-        if snake.alive == False:
-            totaldead = totaldead + 1
+        if snake.scored == True:
+            totalscored = totalscored + 1
+            if snake.alive == False:
+                totaldead = totaldead + 1
     
     position = 1
     for snake in allsnake:
-        pos_x = getPosition(position, allsnake)
-        pos_y = WINDOWHEIGHT / 20
-        drawMessage(snake.name, pos_x, WINDOWHEIGHT / 20 * 3, snake.color)
-        if len(allsnake) != 1:
-            drawText('place:', snake.getPlace(totaldead, len(allsnake)), pos_x, pos_y * 5, snake.color)
-        drawText('score:', snake.score, pos_x, pos_y * 6, snake.color)
-        drawText('apples:', snake.fruitEaten['apple'], pos_x, pos_y * 7, RED)
-        drawText('poison:', snake.fruitEaten['poison'], pos_x, pos_y * 8, GREEN)
-        drawText('oranges:', snake.fruitEaten['orange'], pos_x, pos_y * 9, ORANGE)
-        drawText('raspberries:', snake.fruitEaten['raspberry'], pos_x, pos_y * 10, PURPLE)
-        drawText('blueberries:', snake.fruitEaten['blueberry'], pos_x, pos_y * 11, BLUE)
-        position = position + 1
+        if snake.scored == True:
+            pos_x = getPosition(position, allsnake, totalscored)
+            pos_y = WINDOWHEIGHT / 20
+            drawMessage(snake.name, pos_x, WINDOWHEIGHT / 20 * 3, snake.color)
+            if totalscored != 1:
+                drawText('place:', snake.getPlace(totaldead, totalscored), pos_x, pos_y * 5, snake.color)
+            drawText('score:', snake.score, pos_x, pos_y * 6, snake.color)
+            drawText('apples:', snake.fruitEaten['apple'], pos_x, pos_y * 7, RED)
+            drawText('poison:', snake.fruitEaten['poison'], pos_x, pos_y * 8, GREEN)
+            drawText('oranges:', snake.fruitEaten['orange'], pos_x, pos_y * 9, ORANGE)
+            drawText('raspberries:', snake.fruitEaten['raspberry'], pos_x, pos_y * 10, PURPLE)
+            drawText('blueberries:', snake.fruitEaten['blueberry'], pos_x, pos_y * 11, BLUE)
+            position = position + 1
 
     drawMessage('Press any key.', WINDOWWIDTH / 2, pos_y * 19, GOLDENROD)
     pygame.display.update()
@@ -1652,8 +1708,8 @@ def debugPrintGrid(grid):
             x = 0
 
 
-def getPosition(position, allsnake):
-    return (WINDOWWIDTH - (float(position) / float(len(allsnake)) * WINDOWWIDTH))
+def getPosition(position, allsnake, totalscored):
+    return (WINDOWWIDTH - (float(position) / float(totalscored) * WINDOWWIDTH))
     
 
 def getStartCoords(pos=1):
