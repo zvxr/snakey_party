@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # A Snakey clone made with Pygame.
+# Requires Pygame: http://pygame.org/download.shtml
 # Includes various fruits with different effects in regards to score,
 # snake size, and other in-game effects.
 # Includes various Snake AIs and game modes (Arcade, Duel, Party).
@@ -16,7 +17,8 @@ WINDOWWIDTH = 640
 WINDOWHEIGHT = 480
 CELLSIZE = 20
 TOP_BUFFER = CELLSIZE * 1  # displays in-game info
-assert WINDOWWIDTH % CELLSIZE == 0, "Window width must be a multiple of cell size."
+assert WINDOWWIDTH % CELLSIZE == 0, \
+"Window width must be a multiple of cell size."
 assert (WINDOWHEIGHT - TOP_BUFFER) % CELLSIZE == 0, "Window height must be a multiple of cell size."
 CELLWIDTH = int(WINDOWWIDTH / CELLSIZE)
 CELLHEIGHT = int((WINDOWHEIGHT - TOP_BUFFER) / CELLSIZE)
@@ -126,12 +128,14 @@ class Snake:
     def updateScore(self, points_input):
         """
         This updates score of snake, factoring multiplier.
+        Argument (points_input) should be int.
         """
         self.score = self.score + (points_input * self.multiplier)
 
     def updateGrowth(self, growth_input):
         """
         This updates growth "owed" to snake, allowing amount to stack.
+        Argument (growth_input) should be int.
         """
         self.growth = self.growth + growth_input
 
@@ -183,13 +187,15 @@ class Snake:
         
     def setColorCurrent(self, color):
         """
-        Takes tuple (color) and sets current color.
+        Sets current color.
+        Argument (color) is a tuple.
         """
         self.colorCurrent = {'red': color[0], 'green': color[1], 'blue': color[2]}
         
     def setColorBorderCurrent(self, color):
         """
-        Takes tuple (color) and sets current color.
+        Sets current border color.
+        Argument (color) is a tuple.
         """
         self.colorBorderCurrent = {'red': color[0], 'green': color[1], 'blue': color[2]}
         
@@ -225,7 +231,7 @@ class Snake:
         
     def resetColorBorder(self):
         """
-        Sets current color to color.
+        Sets current border color to border color.
         """
         self.colorBorderCurrent = self.colorBorder
         
@@ -393,14 +399,14 @@ class Opponent(Snake):
     """
     Derived from Snake class, this adds functionality for determining direction.
     """
-    def __init__(self, n='bot', c=False, sc=COBALTGREEN, sb=GOLDENROD, r=20, p=10, a=-15, g=[50,-10,30,20,35,100]):
+    def __init__(self, n='bot', c=False, sc=COBALTGREEN, sb=GOLDENROD, r=20, p=10, a=-15, g=[50,-10,30,20,35,100,30]):
         Snake.__init__(self, n, c, sc, sb)
         self.avoidBoundaries = True
         self.depthPerception = 20
         self.randomness = r
         self.preferSameDirection = p
         self.avoidSnake = a
-        self.goal = {'apple': g[0], 'poison': g[1], 'orange': g[2], 'raspberry': g[3], 'blueberry': g[4], 'lemon': g[5]}
+        self.goal = {'apple': g[0], 'poison': g[1], 'orange': g[2], 'raspberry': g[3], 'blueberry': g[4], 'lemon': g[5], 'egg': g[6]}
 
     def updateDirection(self, grid):
         """
@@ -454,21 +460,6 @@ class Opponent(Snake):
             
         # 'look' to neighboring squares for possible snakes and fruits
         self.look(x, y, self.depthPerception)
-            
-        # favor direction of apple -- this approach will need to be replaced eventually
-        #for cell in grid:
-        #    if grid[cell] == 'apple':
-        #        # get x and y differences and favor direction of apple inversely proportionate to distance
-        #        x_difference = cell[0] - x
-        #        y_difference = cell[1] - y
-        #        if x_difference > 0:
-        #            nextDirection[RIGHT] = nextDirection[RIGHT] + (CELLWIDTH - x_difference)
-        #        else:
-        #            nextDirection[LEFT] = nextDirection[LEFT] + (CELLWIDTH - x_difference)
-        #        if y_difference < 0:
-        #            nextDirection[UP] = nextDirection[UP] + (CELLHEIGHT - y_difference)
-        #        else:
-        #            nextDirection[DOWN] = nextDirection[DOWN] + (CELLHEIGHT - y_difference)
 
         # factor in randomness
         for d in self.nextDirection:
@@ -682,7 +673,7 @@ class Apple(Fruit):
         game.fruitEaten['apple'] = game.fruitEaten['apple'] + 1
         snake.updateScore(self.points)
         snake.updateGrowth(self.growth)
-        snake.updateColor({'red': 6, 'green': -3, 'blue': -3})
+        snake.updateColor({'red': 6, 'green': -5, 'blue': -5})
 
     def drawFruit(self):
         Fruit.drawFruit(self)
@@ -704,7 +695,7 @@ class Poison(Fruit):
         game.fruitEaten['poison'] = game.fruitEaten['poison'] + 1
         snake.updateScore(self.points)
         snake.updateGrowth(self.growth)
-        snake.updateColor({'red': -20, 'green': 20, 'blue': -5})
+        snake.updateColor({'red': -20, 'green': 20})
 
     def updateTimer(self):
         return Fruit.updateTimer(self)
@@ -729,7 +720,7 @@ class Orange(Fruit):
         game.fruitEaten['orange'] = game.fruitEaten['orange'] + 1
         snake.updateScore(self.points)
         snake.updateGrowth(self.growth)
-        snake.updateColor({'red': 10, 'green': 8, 'blue': -10})
+        snake.updateColor({'red': 10, 'green': 3, 'blue': -10})
 
     def updateTimer(self):
         return Fruit.updateTimer(self)
@@ -819,7 +810,7 @@ class Egg(Fruit):
         self.timer = random.randint(EGGTIMER[0], EGGTIMER[1])
         self.color = GOLDENROD
         self.colorBorder = WHITE
-        self.points = 500
+        self.points = 250
         self.growth = 1
         self.radius = CELLSIZE / 2
 
@@ -847,7 +838,7 @@ class Egg(Fruit):
         Add new snake with coords as coords of fruit, and growth of 3.
         Snake is not scored (name and score does not appear).
         """
-        junior = Opponent('junior', [{'x':self.coords['x'] , 'y':self.coords['y']}], PINK, GREEN, 10, 10, -15, [30, 5, 60, 30, 35, 100])
+        junior = Opponent('junior', [{'x':self.coords['x'] , 'y':self.coords['y']}], PINK, GREEN, 10, 10, -15, [30, 5, 60, 30, 35, 100, 0])
         junior.growth = 3
         junior.scored = False
         allsnake.append(junior)
@@ -1024,35 +1015,44 @@ class GameData:
         bonus = []
         type = random.randint(1, 20)
         
+        # drop amounts based on size of playing field
+        squares = CELLWIDTH * CELLHEIGHT
+        tinyLower = int(squares / 600)
+        tinyUpper = int(squares / 135)
+        smallLower = int(squares / 68)
+        smallUpper = int(squares / 45)
+        largeLower = int(squares / 34)
+        largeUpper = int(squares / 19)
+        
         # based on bonus type, create fruits
         if type == 1:
-            counter = random.randint(5,15)
+            counter = random.randint(smallLower,smallUpper)
             while counter > 0:
                 bonus.append('egg')
                 counter = counter - 1
         elif type == 2 or type == 3:
-            counter = random.randint(20,35)
+            counter = random.randint(largeLower,largeUpper)
             while counter > 0:
                 bonus.append('poison')
                 counter = counter - 1
         elif type == 4 or type == 5:
-            counter = random.randint(20,35)
+            counter = random.randint(largeLower,largeUpper)
             while counter > 0:
                 bonus.append('orange')
                 counter = counter - 1
         elif type == 6:
-            counter = random.randint(20,35)
+            counter = random.randint(largeLower,largeUpper)
             while counter > 0:
                 bonus.append('raspberry')
                 counter = counter - 1
         elif type == 7:
-            counter = random.randint(20,30)
+            counter = random.randint(largeLower,largeUpper)
             while counter > 0:
                 bonus.append('blueberry')
                 counter = counter - 1
         # default bonus
         else:
-            counter = random.randint(0,3)
+            counter = random.randint(tinyLower, tinyUpper)
             while counter > 0:
                 bonus.append('poison')
                 counter = counter - 1
@@ -1060,11 +1060,11 @@ class GameData:
             while counter > 0:
                 bonus.append('orange')
                 counter = counter - 1
-            counter = random.randint(1,4)
+            counter = random.randint(tinyLower, tinyUpper)
             while counter > 0:
                 bonus.append('raspberry')
                 counter = counter - 1
-            counter = random.randint(0,2)
+            counter = random.randint(tinyLower, tinyUpper)
             while counter > 0:
                 bonus.append('blueberry')
                 counter = counter - 1
@@ -1155,11 +1155,6 @@ def main():
     BUTTONFONT = pygame.font.Font('freesansbold.ttf', 30)
     pygame.display.set_caption('Snakey Party')
 
-    titleFont = pygame.font.Font('freesansbold.ttf', 64)
-    titleSurf = titleFont.render('Snakey Party', True, WHITE, FORESTGREEN)
-    titleRect = titleSurf.get_rect()
-    titleRect.center = (WINDOWWIDTH / 2, WINDOWHEIGHT * 2/8)
-
     arcadebutton = Button('(a)rcade mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/8)
     duelbutton = Button('(d)uel mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 4/8)
     partybutton = Button('(p)arty mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 5/8)
@@ -1169,7 +1164,7 @@ def main():
     while True: ### need to update this
 
         DISPLAYSURF.fill(BACKGROUNDCLR)
-        DISPLAYSURF.blit(titleSurf, titleRect)
+        drawTitle('Snakey Party', WINDOWWIDTH / 2, WINDOWHEIGHT * 2/8, 64, GREEN, BLACK, True)
         arcadebutton.display()
         duelbutton.display()
         partybutton.display()
@@ -1260,15 +1255,15 @@ def runGame(game, players=[]):
             allsnake.append(player)
             pos = pos + 1
         elif snake == LINUS:
-            linus = Opponent(LINUS, getStartCoords(pos), IVORY, COBALTGREEN, 5, 20, -20)
+            linus = Opponent(LINUS, getStartCoords(pos), IVORY, DARKGRAY, 5, 20, -10)
             allsnake.append(linus)
             pos = pos + 1
         elif snake == WIGGLES:
-            wiggles = Opponent(WIGGLES, getStartCoords(pos), SLATEBLUE, WHITE, 20, 5, -5, [60, -10, 40, 10, 25, 100])
+            wiggles = Opponent(WIGGLES, getStartCoords(pos), SLATEBLUE, COBALTGREEN, 15, 5, -5, [60, -10, 40, 10, 25, 100, 5])
             allsnake.append(wiggles)
             pos = pos + 1
         elif snake == GOOBER:
-            goober = Opponent(GOOBER, getStartCoords(pos), PINK, RED, 10, 10, -15, [30, 5, 60, 30, 35, 100])
+            goober = Opponent(GOOBER, getStartCoords(pos), PINK, RED, 10, 10, -15, [30, 5, 60, 30, 35, 100, 100])
             allsnake.append(goober)
             pos = pos + 1
 
@@ -1528,18 +1523,16 @@ def showSelectPlayersScreen():
     opponentgooberbutton = SelectButton('(g)oober', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 5/7)
     opponentbuttons.append(opponentgooberbutton)
     
-    
     cancelbutton = Button('(e)xit', WINDOWWIDTH / 3, WINDOWHEIGHT * 6/7)
     acceptbutton = Button('(d)uel!', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 6/7)
 
     while True:
 
-        choiceFont = pygame.font.Font('freesansbold.ttf', 36)
-        choiceSurf = choiceFont.render('Choose Opponent:', True, WHITE, FORESTGREEN)
-        choiceRect = choiceSurf.get_rect()
-
         DISPLAYSURF.fill(BACKGROUNDCLR)
-        DISPLAYSURF.blit(choiceSurf, choiceRect)
+        
+        drawTitle('Choose Match-up:')
+        drawTitle('Player 1:', WINDOWWIDTH / 3, WINDOWHEIGHT * 1/7, 30, GOLDENROD, BLACK, True)
+        drawTitle('Player 2:', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 1/7, 30, GOLDENROD, BLACK, True)
 
         # display all buttons
         for button in playerbuttons:
@@ -1691,6 +1684,7 @@ def showGameStats(allsnake):
             drawText('oranges:', snake.fruitEaten['orange'], pos_x, pos_y * 9, ORANGE)
             drawText('raspberries:', snake.fruitEaten['raspberry'], pos_x, pos_y * 10, PURPLE)
             drawText('blueberries:', snake.fruitEaten['blueberry'], pos_x, pos_y * 11, BLUE)
+            drawText('eggs:', snake.fruitEaten['egg'], pos_x, pos_y * 12, WHITE)
             position = position + 1
 
     drawMessage('Press any key.', WINDOWWIDTH / 2, pos_y * 19, GOLDENROD)
@@ -1712,9 +1706,7 @@ def showGameOverScreen():
     gameOverRect.midtop = (WINDOWWIDTH / 2, WINDOWHEIGHT / 3 * 2)
 
     DISPLAYSURF.blit(gameOverSurf, gameOverRect)
-    #drawMessage('Press any key.', WINDOWWIDTH / 2, WINDOWHEIGHT / 20 * 19, GOLDENROD)
     pygame.display.update()
-    #pygame.time.wait(100)
 
 
 def getGrid(allsnake, allfruit):
@@ -1745,28 +1737,49 @@ def getGrid(allsnake, allfruit):
             grid[(fruit.coords['x'], fruit.coords['y'])] = 'blueberry'
         elif fruit.__class__ == Lemon:
             grid[(fruit.coords['x'], fruit.coords['y'])] = 'lemon'
+        elif fruit.__class__ == Egg:
+            grid[(fruit.coords['x'], fruit.coords['y'])] = 'egg'
 
     return grid
 
 
-def drawText(text, value, x=1, y=1, color=WHITE, background=BLACK):
+def drawText(text, value, x=1, y=1, color=WHITE, background=BLACK, center=False):
     """
     Draws text & value with background to screen.
     """
     scoreSurf = BASICFONT.render('%s %s' % (text, value), True, color, background)
     scoreRect = scoreSurf.get_rect()
-    scoreRect.topleft = (x, y)
+    if center == False:
+        scoreRect.topleft = (x, y)
+    else:
+        scoreRect.center = (x, y)
     DISPLAYSURF.blit(scoreSurf, scoreRect)
     
     
-def drawMessage(text, x=1, y=1, color=MESSAGECLR):
+def drawMessage(text, x=1, y=1, color=MESSAGECLR, center=False):
     """
     Draws message to screen.
     """
     messageSurf = BASICFONT.render(text, True, color)
     messageRect = messageSurf.get_rect()
-    messageRect.topleft = (x, y)
+    if center == False:
+        messageRect.topleft = (x, y)
+    else:
+        messageRect.center = (x, y)
+        
     DISPLAYSURF.blit(messageSurf, messageRect)
+    
+    
+def drawTitle(text, x=1, y=1, size=36, color=GREEN, backgroundColor=BLACK, center=False):
+    titleFont = pygame.font.Font('freesansbold.ttf', size)
+    titleSurf = titleFont.render(text, True, color, backgroundColor)
+    titleRect = titleSurf.get_rect()
+    if center == False:
+        titleRect.topleft = (x, y)
+    else:
+        titleRect.center = (x, y)
+
+    DISPLAYSURF.blit(titleSurf, titleRect)
 
 
 def drawGrid():
