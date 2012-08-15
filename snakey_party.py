@@ -7,11 +7,13 @@
 import random, pygame, sys
 from pygame.locals import *
 
-WINDOWWIDTH = 640
-WINDOWHEIGHT = 480
 FPS = 12
 MIN_FPS = 3
 MAX_FPS = 60
+FREEZING_POINT = 8  # target FPS when Blueberry (slow) is in effect.
+
+WINDOWWIDTH = 640
+WINDOWHEIGHT = 480
 CELLSIZE = 20
 TOP_BUFFER = CELLSIZE * 1  # displays in-game info
 assert WINDOWWIDTH % CELLSIZE == 0, "Window width must be a multiple of cell size."
@@ -22,45 +24,32 @@ CELLHEIGHT = int((WINDOWHEIGHT - TOP_BUFFER) / CELLSIZE)
 # colors - (R G B)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
-DARKGRAY = (40, 40, 40)
-PINK = (255, 105, 180)
-SLATEBLUE = (131, 111, 255)
-
-HONEYDEW = (240, 255, 240)
-MINTGREEN = (189, 252, 201)
-SEAGREEN = (84, 255, 159)
-EMERALDGREEN = (0, 201, 87)
-FORESTGREEN = (34, 139, 34)
 COBALTGREEN = (61, 145, 64)
-GREENYELLOW = (173, 255, 47)
-OLIVEGREEN = (107, 142, 35)
-IVORY = (205, 205, 193)
-LIGHTYELLOW = (238, 238, 209)
-YELLOW = (238, 238, 0)
-KHAKI = (255, 246, 143)
+DARKGRAY = (40, 40, 40)
+FORESTGREEN = (34, 139, 34)
 GOLDENROD = (218, 165, 32)
-CORAL = (255, 127, 80)
-SIENNA = (255, 130, 71)
+GREEN = (0, 255, 0)
+IVORY = (205, 205, 193)
 ORANGE = (255, 127, 0)
+PINK = (255, 105, 180)
 PURPLE = (142, 56, 142)
-MAROON = (255, 52, 179)
-BACKGROUNDCOLOR = BLACK
+RED = (255, 0, 0)
+SLATEBLUE = (131, 111, 255)
+YELLOW = (238, 238, 0)
+
+BACKGROUNDCLR = BLACK
 BUTTONCLR = GREEN
 BUTTONTXT = DARKGRAY
-BUTTONCLR_SL = COBALTGREEN
-BUTTONTXT_SL = GOLDENROD
-MESSAGE_COLOR = GREEN
+BUTTONCLR_SEL = COBALTGREEN
+BUTTONTXT_SEL = GOLDENROD
+MESSAGECLR = GREEN
 
-# for consistency in direction types
+# for consistency
 UP = 'up'
 DOWN = 'down'
 LEFT = 'left'
 RIGHT = 'right'
-
-# for consistency in snake names
 SNAKEY = 'snakey'
 LINUS = 'linus'
 WIGGLES = 'wiggles'
@@ -76,9 +65,6 @@ RASPBERRYTIMER = (30, 45)
 BLUEBERRYTIMER = (20, 40)
 LEMONTIMER = (100, 100)
 EGGTIMER = (40, 70)
-
-# target FPS when Blueberry (slow) is in effect.
-FREEZING_POINT = 8
 
 
 class Snake:
@@ -97,7 +83,7 @@ class Snake:
     score - the number of points snake has accumulated.
     place - used to determine death order.
     """
-    def __init__(self, n=SNAKEY, c=False, sc=GREEN, sb=COBALTGREEN):
+    def __init__(self, n=SNAKEY, c=False, colorsnake=GREEN, colorborder=COBALTGREEN):
         self.name = n
         if self.name == SNAKEY:
             self.player = True
@@ -118,12 +104,16 @@ class Snake:
                 self.direction = LEFT
         # egg -- for now until AI direction fixed
         else:
-             self.direction = LEFT   
+             self.direction = LEFT
         
-        self.color = sc
+        self.color = {'red': 0, 'green': 0, 'blue': 0}
+        self.updateColor({'red': colorsnake[0], 'green': colorsnake[1], 'blue': colorsnake[2]})
         self.colorCurrent = self.color
-        self.colorBorder = sb
+        
+        self.colorBorder = {'red': 0, 'green': 0, 'blue': 0}
+        self.updateColorBorder({'red': colorborder[0], 'green': colorborder[1], 'blue': colorborder[2]})
         self.colorBorderCurrent = self.colorBorder
+        
         self.growth = 0
         self.multiplier = 1
         self.multipliertimer = 0
@@ -152,6 +142,92 @@ class Snake:
         # multiplier value does not stack, but time does
         self.multiplier = multiplier_input
         self.multipliertimer = self.multipliertimer + timer_input
+        
+    def updateColor(self, change):
+        """
+        Adjusts color of snake.
+        Argument (change) is dictionary.
+        Factors in maximums and minimums.
+        """
+        for color in change:
+            if self.color.has_key(color):
+                if change[color] > 0:
+                    if self.color[color] + change[color] > 255:
+                        self.color[color] = 255
+                    else:
+                        self.color[color] = self.color[color] + change[color]
+                elif change[color] < 0:
+                    if self.color[color] + change[color] < 0:
+                        self.color[color] = 0
+                    else:
+                        self.color[color] = self.color[color] + change[color]
+                        
+    def updateColorBorder(self, change):
+        """
+        Adjusts border color of snake.
+        Argument (change) is dictionary.
+        Factors in maximums and minimums.
+        """
+        for color in change:
+            if self.colorBorder.has_key(color):
+                if change[color] > 0:
+                    if self.colorBorder[color] + change[color] > 255:
+                        self.colorBorder[color] = 255
+                    else:
+                        self.colorBorder[color] = self.colorBorder[color] + change[color]
+                elif change[color] < 0:
+                    if self.colorBorder[color] + change[color] < 0:
+                        self.colorBorder[color] = 0
+                    else:
+                        self.colorBorder[color] = self.colorBorder[color] + change[color]
+        
+    def setColorCurrent(self, color):
+        """
+        Takes tuple (color) and sets current color.
+        """
+        self.colorCurrent = {'red': color[0], 'green': color[1], 'blue': color[2]}
+        
+    def setColorBorderCurrent(self, color):
+        """
+        Takes tuple (color) and sets current color.
+        """
+        self.colorBorderCurrent = {'red': color[0], 'green': color[1], 'blue': color[2]}
+        
+    def getColor(self):
+        """
+        Returns tuple of snake color.
+        """
+        return (self.color['red'], self.color['green'], self.color['blue'])
+        
+    def getColorCurrent(self):
+        """
+        Returns tuple of snake color, currently.
+        """
+        return (self.colorCurrent['red'], self.colorCurrent['green'], self.colorCurrent['blue'])
+        
+    def getColorBorder(self):
+        """
+        Returns tuple of snake color, border.
+        """
+        return (self.colorBorder['red'], self.colorBorder['green'], self.colorBorder['blue'])
+        
+    def getColorBorderCurrent(self):
+        """
+        Returns tuple of snake color, current border.
+        """
+        return (self.colorBorderCurrent['red'], self.colorBorderCurrent['green'], self.colorBorderCurrent['blue'])
+        
+    def resetColor(self):
+        """
+        Sets current color to color.
+        """
+        self.colorCurrent = self.color
+        
+    def resetColorBorder(self):
+        """
+        Sets current color to color.
+        """
+        self.colorBorderCurrent = self.colorBorder
         
     def getPlace(self, totaldead, totalscored):
         """
@@ -294,15 +370,15 @@ class Snake:
             x = coord['x'] * CELLSIZE
             y = coord['y'] * CELLSIZE
             snakeSegmentRect = pygame.Rect(x, y, CELLSIZE, CELLSIZE)
-            pygame.draw.rect(DISPLAYSURF, self.colorBorderCurrent, snakeSegmentRect)
-            snakeInnerSegmentRect = pygame.Rect(x + 4, y + 4, CELLSIZE - 8, CELLSIZE - 8)
-            pygame.draw.rect(DISPLAYSURF, self.colorCurrent, snakeInnerSegmentRect)
+            pygame.draw.rect(DISPLAYSURF, self.getColorBorderCurrent(), snakeSegmentRect)
+            snakeInnerSegmentRect = pygame.Rect(x + 3, y + 3, CELLSIZE - 6, CELLSIZE - 6)
+            pygame.draw.rect(DISPLAYSURF, self.getColorCurrent(), snakeInnerSegmentRect)
             
     def drawScore(self, position, allsnake):
         """
         Responsible for drawing snake score to screen.
         """
-        scoreSurf = BASICFONT.render('%s: %s' % (self.name, self.score), True, self.colorCurrent)
+        scoreSurf = BASICFONT.render('%s: %s' % (self.name, self.score), True, self.getColorCurrent())
         scoreRect = scoreSurf.get_rect()
         # get number of snakes in allsnake that will be scored.
         totalscored = 0
@@ -473,6 +549,36 @@ class Opponent(Snake):
 
     def getPlace(self, totaldead, totalsnakes):
         return Snake.getPlace(self, totaldead, totalsnakes)
+        
+    def updateColor(self, change):
+        Snake.updateColor(self, change)
+        
+    def updateColorBorder(self, change):
+        Snake.updateColorBorder(self, change)
+
+    def setColorCurrent(self, color):
+        Snake.setColorCurrent(self, color)
+        
+    def setColorBorderCurrent(self, color):
+        Snake.setColorBorderCurrent(self, color)
+        
+    def getColor(self):
+        return Snake.getColor(self)
+        
+    def getColorCurrent(self):
+        return Snake.getColorCurrent(self)
+        
+    def getColorBorder(self):
+        return Snake.getColorBorder(self)
+        
+    def getColorBorderCurrent(self):
+        return Snake.getColorBorderCurrent(self)
+        
+    def resetColor(self):
+        Snake.resetColor(self)
+    
+    def resetColorBorder(self):
+        Snake.resetColorBorder(self)
 
     def updateScore(self, points_input):
         Snake.updateScore(self, points_input)
@@ -576,6 +682,7 @@ class Apple(Fruit):
         game.fruitEaten['apple'] = game.fruitEaten['apple'] + 1
         snake.updateScore(self.points)
         snake.updateGrowth(self.growth)
+        snake.updateColor({'red': 6, 'green': -3, 'blue': -3})
 
     def drawFruit(self):
         Fruit.drawFruit(self)
@@ -597,6 +704,7 @@ class Poison(Fruit):
         game.fruitEaten['poison'] = game.fruitEaten['poison'] + 1
         snake.updateScore(self.points)
         snake.updateGrowth(self.growth)
+        snake.updateColor({'red': -20, 'green': 20, 'blue': -5})
 
     def updateTimer(self):
         return Fruit.updateTimer(self)
@@ -621,6 +729,7 @@ class Orange(Fruit):
         game.fruitEaten['orange'] = game.fruitEaten['orange'] + 1
         snake.updateScore(self.points)
         snake.updateGrowth(self.growth)
+        snake.updateColor({'red': 10, 'green': 8, 'blue': -10})
 
     def updateTimer(self):
         return Fruit.updateTimer(self)
@@ -644,6 +753,7 @@ class Raspberry(Fruit):
         snake.fruitEaten['raspberry'] = snake.fruitEaten['raspberry'] + 1
         game.fruitEaten['raspberry'] = game.fruitEaten['raspberry'] + 1
         snake.updateMultiplier(self.multiplier, self.multipliertimer)
+        snake.updateColor({'red': 12, 'green': -15, 'blue': 13})
 
     def updateTimer(self):
         return Fruit.updateTimer(self)
@@ -668,6 +778,7 @@ class Blueberry(Fruit):
         snake.fruitEaten['blueberry'] = snake.fruitEaten['blueberry'] + 1
         game.fruitEaten['blueberry'] = game.fruitEaten['blueberry'] + 1
         snake.updateScore(self.score)
+        snake.updateColor({'red': -20, 'green': -15, 'blue': 60})
 
     def updateTimer(self):
         return Fruit.updateTimer(self)
@@ -690,6 +801,7 @@ class Lemon(Fruit):
         snake.fruitEaten['lemon'] = snake.fruitEaten['lemon'] + 1
         game.fruitEaten['lemon'] = game.fruitEaten['lemon'] + 1
         snake.updateScore(self.score)
+        snake.updateColor({'blue': -20})
 
     def updateTimer(self):
         return Fruit.updateTimer(self)
@@ -705,17 +817,29 @@ class Egg(Fruit):
     def __init__(self, allfruit, allsnake, game):
         self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, game)
         self.timer = random.randint(EGGTIMER[0], EGGTIMER[1])
-        self.color = WHITE
+        self.color = GOLDENROD
+        self.colorBorder = WHITE
         self.points = 500
         self.growth = 1
+        self.radius = CELLSIZE / 2
 
     def isEaten(self, snake, game):
         snake.fruitEaten['egg'] = snake.fruitEaten['egg'] + 1
         game.fruitEaten['egg'] = game.fruitEaten['egg'] + 1
         snake.updateScore(self.points)
         snake.updateGrowth(self.growth)
+        snake.updateColor({'red': -35, 'green': -30, 'blue': -25})
 
     def updateTimer(self):
+        """
+        Also adjusts radius size depending on time remaining.
+        """
+        if self.timer < (EGGTIMER[0] + EGGTIMER[1]) * 2 / 3:
+            self.radius = CELLSIZE / 3
+        if self.timer < (EGGTIMER[0] + EGGTIMER[1]) / 2:
+            self.radius = CELLSIZE / 4
+        if self.timer < (EGGTIMER[0] + EGGTIMER[1]) / 3:
+            self.radius = CELLSIZE / 5
         return Fruit.updateTimer(self)
 
     def isHatched(self, allsnake):
@@ -734,8 +858,12 @@ class Egg(Fruit):
         """
         x = self.coords['x'] * CELLSIZE
         y = self.coords['y'] * CELLSIZE
+        xNext = (self.coords['x'] + 1) * CELLSIZE
+        yNext = (self.coords['y'] + 1) * CELLSIZE
+        center = ((xNext + x) / 2, (yNext + y) / 2)
         fruitRect = pygame.Rect(x, y, CELLSIZE, CELLSIZE)
-        pygame.draw.rect(DISPLAYSURF, self.color, fruitRect)
+        pygame.draw.rect(DISPLAYSURF, self.colorBorder, fruitRect)
+        pygame.draw.circle(DISPLAYSURF, self.color, center, self.radius)
 
 
 class GameData:
@@ -765,7 +893,7 @@ class GameData:
         self.poisonDrop = 4
         self.orangeDrop = 5
         self.raspberryDrop = 6
-        self.blueberryDrop = 20
+        self.blueberryDrop = 25
         self.lemonDrop = False
         self.eggDrop = 12
 
@@ -898,7 +1026,7 @@ class GameData:
         
         # based on bonus type, create fruits
         if type == 1:
-            counter = random.randint(5,20)
+            counter = random.randint(5,15)
             while counter > 0:
                 bonus.append('egg')
                 counter = counter - 1
@@ -912,17 +1040,18 @@ class GameData:
             while counter > 0:
                 bonus.append('orange')
                 counter = counter - 1
-        elif type == 6 or type == 7:
+        elif type == 6:
             counter = random.randint(20,35)
             while counter > 0:
                 bonus.append('raspberry')
                 counter = counter - 1
-        elif type == 8:
+        elif type == 7:
             counter = random.randint(20,30)
             while counter > 0:
                 bonus.append('blueberry')
                 counter = counter - 1
-        else:  # default bonus
+        # default bonus
+        else:
             counter = random.randint(0,3)
             while counter > 0:
                 bonus.append('poison')
@@ -993,7 +1122,7 @@ class SelectButton(Button):
         
     def display(self):
         if self.active == True:
-            startSurf = BUTTONFONT.render(self.text, True, BUTTONCLR_SL, BUTTONTXT_SL)
+            startSurf = BUTTONFONT.render(self.text, True, BUTTONCLR_SEL, BUTTONTXT_SEL)
         else:
             startSurf = BUTTONFONT.render(self.text, True, BUTTONCLR, BUTTONTXT)
             
@@ -1039,7 +1168,7 @@ def main():
 
     while True: ### need to update this
 
-        DISPLAYSURF.fill(BACKGROUNDCOLOR)
+        DISPLAYSURF.fill(BACKGROUNDCLR)
         DISPLAYSURF.blit(titleSurf, titleRect)
         arcadebutton.display()
         duelbutton.display()
@@ -1236,43 +1365,6 @@ def runGame(game, players=[]):
                 if snake.alive and snake.snakeCollision(othersnake):
                     snake.alive = False
 
-        # check score - change color accordingly
-        # only looks at player snake
-        if player != False:
-            if player.score > 2000:
-                player.color = SIENNA
-                player.colorBorder = CORAL
-            elif player.score > 1500:
-                player.color = CORAL
-                player.colorBorder = GOLDENROD
-            elif player.score > 1250:
-                player.color = GOLDENROD
-                player.colorBorder = EMERALDGREEN
-            elif player.score > 1000:
-                player.color = KHAKI
-                player.colorBorder = LIGHTYELLOW
-            elif player.score > 750:
-                player.color = YELLOW
-                player.colorBorder = GREEN
-            elif player.score > 500:
-                player.color = LIGHTYELLOW
-                player.colorBorder = FORESTGREEN
-            elif player.score > 400:
-                player.color = IVORY #change this
-                player.colorBorder = FORESTGREEN
-            elif player.score > 300:
-                player.color = GREENYELLOW
-                player.colorBorder = OLIVEGREEN
-            elif player.score > 200:
-                player.color = HONEYDEW
-                player.colorBorder = SEAGREEN   
-            elif player.score > 100:
-                player.color = SEAGREEN 
-                player.colorBorder = EMERALDGREEN
-            else:
-                player.color = GREEN
-                player.colorBorder = COBALTGREEN 
-
         # check if fruit has been eaten by a snake
         for snake in allsnake:
             for fruit in allfruit:
@@ -1308,23 +1400,23 @@ def runGame(game, players=[]):
         for snake in allsnake:
             if snake.multipliertimer > 0:
                 snake.multipliertimer = snake.multipliertimer - 1
-                snake.colorBorderCurrent = PURPLE
+                snake.setColorBorderCurrent(PURPLE)
             else:
                 # make sure multiplier is 1, color is normal
                 snake.multiplier = 1
-                snake.colorBorderCurrent = snake.colorBorder
+                snake.resetColorBorder()
 
         # check slow and adjust color and fps as needed
         if game.checkSlowTimer():
             game.updateSlowTimer()
             game.updateCurrentSpeed(FREEZING_POINT)
             for snake in allsnake:
-                snake.colorCurrent = BLUE
+                snake.setColorCurrent(BLUE)
         else:
             game.updateCurrentSpeed()
             # make sure color is normal
             for snake in allsnake:
-                snake.colorCurrent = snake.color
+                snake.resetColor()
 
         # update timers on fruits, remove if necessary
         for fruit in allfruit:
@@ -1336,7 +1428,7 @@ def runGame(game, players=[]):
                     allfruit.remove(fruit)
 
         # draw everything to screen
-        DISPLAYSURF.fill(BACKGROUNDCOLOR)
+        DISPLAYSURF.fill(BACKGROUNDCLR)
         drawGrid()
         for fruit in allfruit:
             fruit.drawFruit()
@@ -1446,7 +1538,7 @@ def showSelectPlayersScreen():
         choiceSurf = choiceFont.render('Choose Opponent:', True, WHITE, FORESTGREEN)
         choiceRect = choiceSurf.get_rect()
 
-        DISPLAYSURF.fill(BACKGROUNDCOLOR)
+        DISPLAYSURF.fill(BACKGROUNDCLR)
         DISPLAYSURF.blit(choiceSurf, choiceRect)
 
         # display all buttons
@@ -1590,10 +1682,10 @@ def showGameStats(allsnake):
         if snake.scored == True:
             pos_x = getPosition(position, allsnake, totalscored)
             pos_y = WINDOWHEIGHT / 20
-            drawMessage(snake.name, pos_x, WINDOWHEIGHT / 20 * 3, snake.color)
+            drawMessage(snake.name, pos_x, WINDOWHEIGHT / 20 * 3, snake.getColor())
             if totalscored != 1:
-                drawText('place:', snake.getPlace(totaldead, totalscored), pos_x, pos_y * 5, snake.color)
-            drawText('score:', snake.score, pos_x, pos_y * 6, snake.color)
+                drawText('place:', snake.getPlace(totaldead, totalscored), pos_x, pos_y * 5, snake.getColor())
+            drawText('score:', snake.score, pos_x, pos_y * 6, snake.getColor())
             drawText('apples:', snake.fruitEaten['apple'], pos_x, pos_y * 7, RED)
             drawText('poison:', snake.fruitEaten['poison'], pos_x, pos_y * 8, GREEN)
             drawText('oranges:', snake.fruitEaten['orange'], pos_x, pos_y * 9, ORANGE)
@@ -1667,7 +1759,7 @@ def drawText(text, value, x=1, y=1, color=WHITE, background=BLACK):
     DISPLAYSURF.blit(scoreSurf, scoreRect)
     
     
-def drawMessage(text, x=1, y=1, color=MESSAGE_COLOR):
+def drawMessage(text, x=1, y=1, color=MESSAGECLR):
     """
     Draws message to screen.
     """
