@@ -18,8 +18,9 @@ WINDOWHEIGHT = 480
 CELLSIZE = 20
 TOP_BUFFER = CELLSIZE * 1  # displays in-game info
 assert WINDOWWIDTH % CELLSIZE == 0, \
-"Window width must be a multiple of cell size."
-assert (WINDOWHEIGHT - TOP_BUFFER) % CELLSIZE == 0, "Window height must be a multiple of cell size."
+       "Window width must be a multiple of cell size."
+assert (WINDOWHEIGHT - TOP_BUFFER) % CELLSIZE == 0, \
+       "Window height must be a multiple of cell size."
 CELLWIDTH = int(WINDOWWIDTH / CELLSIZE)
 CELLHEIGHT = int((WINDOWHEIGHT - TOP_BUFFER) / CELLSIZE)
 
@@ -383,16 +384,16 @@ class Snake:
     def drawScore(self, position, allsnake):
         """
         Responsible for drawing snake score to screen.
+        Coordinates of where drawn so that 'y' depends on number of snakes being scored, 'x' at the top (where buffer is)
         """
-        scoreSurf = BASICFONT.render('%s: %s' % (self.name, self.score), True, self.getColorCurrent())
-        scoreRect = scoreSurf.get_rect()
         # get number of snakes in allsnake that will be scored.
         totalscored = 0
         for snake in allsnake:
             if snake.scored == True:
                 totalscored = totalscored + 1
-        scoreRect.topleft = (getPosition(position, allsnake, totalscored), 1)
-        DISPLAYSURF.blit(scoreSurf, scoreRect)
+        drawMessage(self.name + ': ' + str(self.score), \
+                    getPosition(position, allsnake, totalscored), 1, \
+                    self.getColorCurrent())
         
         
 class Opponent(Snake):
@@ -1092,44 +1093,48 @@ class Button():
     """
     def __init__(self, text, x, y):
         self.text = text
-        startSurf = BUTTONFONT.render(self.text, True, BUTTONCLR, BUTTONTXT)
-        self.rect = startSurf.get_rect()
+        size = int (WINDOWWIDTH / 18)
+        self.font = pygame.font.Font('freesansbold.ttf', size)
+        self.startSurf = self.font.render(self.text, True, BUTTONCLR, BUTTONTXT)
+        self.rect = self.startSurf.get_rect()
         self.rect.center = x,y
 
     def display(self):
-        startSurf = BUTTONFONT.render(self.text, True, BUTTONCLR, BUTTONTXT)
-        DISPLAYSURF.blit(startSurf, self.rect)
+        DISPLAYSURF.blit(self.startSurf, self.rect)
 
     def pressed(self, mouse):
-        if mouse[0] > self.rect.topleft[0]:
-            if mouse[1] > self.rect.topleft[1]:
-                if mouse[0] < self.rect.bottomright[0]:
-                    if mouse[1] < self.rect.bottomright[1]:
-                        return True
-                    else: return False
-                else: return False
-            else: return False
-        else: return False
+        if mouse[0] > self.rect.topleft[0] and \
+           mouse[1] > self.rect.topleft[1] and \
+           mouse[0] < self.rect.bottomright[0] and \
+           mouse[1] < self.rect.bottomright[1]:
+            return True
+        else:
+            return False
 
 
 class SelectButton(Button):
     """
     Selected by color. Clicking will turn active state to True.
+    Contains a value that is returned with getValue().
     """
-    def __init__(self, text, x, y, a=False):
+    def __init__(self, text, x, y, v, a=False):
         Button.__init__(self, text, x, y)
+        self.value = v
         self.active = a
         
     def display(self):
         if self.active == True:
-            startSurf = BUTTONFONT.render(self.text, True, BUTTONCLR_SEL, BUTTONTXT_SEL)
+            self.startSurf = self.font.render(self.text, True, BUTTONCLR_SEL, BUTTONTXT_SEL)
         else:
-            startSurf = BUTTONFONT.render(self.text, True, BUTTONCLR, BUTTONTXT)
+            self.startSurf = self.font.render(self.text, True, BUTTONCLR, BUTTONTXT)
             
-        DISPLAYSURF.blit(startSurf, self.rect)
+        DISPLAYSURF.blit(self.startSurf, self.rect)
         
     def pressed(self, mouse):
         return Button.pressed(self, mouse)
+
+    def getActive(self):
+        return self.active
 
     def setActive(self, buttonlist):
         for button in buttonlist:
@@ -1137,10 +1142,13 @@ class SelectButton(Button):
                 self.active = True
             else:
                 button.active = False
+                
+    def getValue(self):
+        return self.value
 
 
 def main():
-    global FPSCLOCK, DISPLAYSURF, BASICFONT, BUTTONFONT, DEBUG
+    global FPSCLOCK, DISPLAYSURF, DEBUG
     
     # for debugging
     if len(sys.argv) < 2:
@@ -1151,25 +1159,25 @@ def main():
     pygame.init()
     FPSCLOCK = pygame.time.Clock()
     DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
-    BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
-    BUTTONFONT = pygame.font.Font('freesansbold.ttf', 30)
     pygame.display.set_caption('Snakey Party')
 
-    arcadebutton = Button('(a)rcade mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/8)
-    duelbutton = Button('(d)uel mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 4/8)
-    partybutton = Button('(p)arty mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 5/8)
-    tronybutton = Button('(t)ron-y mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 6/8)
-    instructbutton = Button('(i)nstructions', WINDOWWIDTH / 2, WINDOWHEIGHT * 7/8)
+    arcadebutton = Button('(a)rcade mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 2/8)
+    duelbutton = Button('(d)uel mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/8)
+    partybutton = Button('(p)arty mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 4/8)
+    tronybutton = Button('(t)ron-y mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 5/8)
+    instructbutton = Button('(i)nstructions', WINDOWWIDTH / 2, WINDOWHEIGHT * 6/8)
+    settingsbutton = Button('(s)ettings', WINDOWWIDTH / 2, WINDOWHEIGHT * 7/8)
 
     while True: ### need to update this
 
         DISPLAYSURF.fill(BACKGROUNDCLR)
-        drawTitle('Snakey Party', WINDOWWIDTH / 2, WINDOWHEIGHT * 2/8, 64, GREEN, BLACK, True)
+        drawTitle('Snakey Party', WINDOWWIDTH / 2, WINDOWHEIGHT * 1/8, 64, GREEN, True)
         arcadebutton.display()
         duelbutton.display()
         partybutton.display()
         tronybutton.display()
         instructbutton.display()
+        settingsbutton.display()
 
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -1203,6 +1211,8 @@ def main():
                     showGameOverScreen()
                 elif instructbutton.pressed(mouse):
                     showInstructScreen()
+                elif settingsbutton.pressed(mouse):
+                    showSettingsScreen()
             elif event.type == KEYDOWN:
                 if event.key == K_a:
                     pygame.event.get()
@@ -1231,6 +1241,8 @@ def main():
                     showGameOverScreen()
                 elif event.key == K_i:
                     showInstructScreen()
+                elif event.key == K_s:
+                    showSettingsScreen()
                 elif event.key == K_ESCAPE or event.key == K_q:
                     terminate()
 
@@ -1506,33 +1518,33 @@ def showSelectPlayersScreen():
     Blits player/opponent select onto screen. Returns selection as list.
     """
     playerbuttons = []
-    playersnakeybutton = SelectButton('(s)nakey', WINDOWWIDTH / 3, WINDOWHEIGHT * 2/7, True)
+    playersnakeybutton = SelectButton('(s)nakey', WINDOWWIDTH / 3, WINDOWHEIGHT * 2/7, SNAKEY, True)
     playerbuttons.append(playersnakeybutton)
-    playerlinusbutton = SelectButton('(l)inus', WINDOWWIDTH / 3, WINDOWHEIGHT * 3/7)
+    playerlinusbutton = SelectButton('(l)inus', WINDOWWIDTH / 3, WINDOWHEIGHT * 3/7, LINUS)
     playerbuttons.append(playerlinusbutton)
-    playerwigglesbutton = SelectButton('(w)iggles', WINDOWWIDTH / 3, WINDOWHEIGHT * 4/7)
+    playerwigglesbutton = SelectButton('(w)iggles', WINDOWWIDTH / 3, WINDOWHEIGHT * 4/7, WIGGLES)
     playerbuttons.append(playerwigglesbutton)
-    playergooberbutton = SelectButton('(g)oober', WINDOWWIDTH / 3, WINDOWHEIGHT * 5/7)
+    playergooberbutton = SelectButton('(g)oober', WINDOWWIDTH / 3, WINDOWHEIGHT * 5/7, GOOBER)
     playerbuttons.append(playergooberbutton)
     
     opponentbuttons = []
-    opponentlinusbutton = SelectButton('(l)inus', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 3/7, True)
+    opponentlinusbutton = SelectButton('(l)inus', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 3/7, LINUS, True)
     opponentbuttons.append(opponentlinusbutton)
-    opponentwigglesbutton = SelectButton('(w)iggles', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 4/7)
+    opponentwigglesbutton = SelectButton('(w)iggles', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 4/7, WIGGLES)
     opponentbuttons.append(opponentwigglesbutton)
-    opponentgooberbutton = SelectButton('(g)oober', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 5/7)
+    opponentgooberbutton = SelectButton('(g)oober', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 5/7, GOOBER)
     opponentbuttons.append(opponentgooberbutton)
     
     cancelbutton = Button('(e)xit', WINDOWWIDTH / 3, WINDOWHEIGHT * 6/7)
     acceptbutton = Button('(d)uel!', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 6/7)
+    
+    DISPLAYSURF.fill(BACKGROUNDCLR)
 
     while True:
-
-        DISPLAYSURF.fill(BACKGROUNDCLR)
         
         drawTitle('Choose Match-up:')
-        drawTitle('Player 1:', WINDOWWIDTH / 3, WINDOWHEIGHT * 1/7, 30, GOLDENROD, BLACK, True)
-        drawTitle('Player 2:', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 1/7, 30, GOLDENROD, BLACK, True)
+        drawTitle('Player 1:', WINDOWWIDTH / 3, WINDOWHEIGHT * 1/7, 30, GOLDENROD, True)
+        drawTitle('Player 2:', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 1/7, 30, GOLDENROD, True)
 
         # display all buttons
         for button in playerbuttons:
@@ -1562,20 +1574,12 @@ def showSelectPlayersScreen():
                 elif acceptbutton.pressed(mouse):
                     pygame.event.get()
                     final = []
-                    if playersnakeybutton.active:
-                        final.append(SNAKEY)
-                    elif playerlinusbutton.active:
-                        final.append(LINUS)
-                    elif playerwigglesbutton.active:
-                        final.append(WIGGLES)
-                    elif playergooberbutton.active:
-                        final.append(GOOBER)
-                    if opponentlinusbutton.active:
-                        final.append(LINUS)
-                    elif opponentwigglesbutton.active:
-                        final.append(WIGGLES)
-                    elif opponentgooberbutton.active:
-                        final.append(GOOBER)
+                    for button in playerbuttons:
+                        if button.getActive():
+                            final.append(button.getValue())
+                    for button in opponentbuttons:
+                        if button.getActive():
+                            final.append(button.getValue())
                     return final
 
             elif event.type == KEYDOWN:
@@ -1592,21 +1596,14 @@ def showSelectPlayersScreen():
                     pygame.event.get()
                     opponentgooberbutton.setActive(opponentbuttons)
                 elif event.key == K_d:
+                    pygame.event.get()
                     final = []
-                    if playersnakeybutton.active:
-                        final.append(SNAKEY)
-                    elif playerlinusbutton.active:
-                        final.append(LINUS)
-                    elif playerwigglesbutton.active:
-                        final.append(WIGGLES)
-                    elif playergooberbutton.active:
-                        final.append(GOOBER)
-                    if opponentlinusbutton.active:
-                        final.append(LINUS)
-                    elif opponentwigglesbutton.active:
-                        final.append(WIGGLES)
-                    elif opponentgooberbutton.active:
-                        final.append(GOOBER)
+                    for button in playerbuttons:
+                        if button.getActive():
+                            final.append(button.getValue())
+                    for button in opponentbuttons:
+                        if button.getActive():
+                            final.append(button.getValue())
                     return final
                 elif event.key == K_e:
                     pygame.event.get()
@@ -1621,22 +1618,24 @@ def showInstructScreen():
     """
     Blits instructions onto screen. Returns when exit button clicked / key pressed.
     """
-    endinstructbutton = Button('(e)xit', WINDOWWIDTH / 2, WINDOWHEIGHT - 40)
+    endbutton = Button('(e)xit', WINDOWWIDTH / 2, WINDOWHEIGHT * 15/16)
+
+    DISPLAYSURF.fill(BACKGROUNDCLR)
 
     while True:
 
-        instruct = pygame.image.load('snakey_party_instructions.png').convert()
+        drawTitle('Snakey Party', WINDOWWIDTH / 2, WINDOWHEIGHT * 1/16, 36, GREEN, True)
+        drawTitle('Instructions', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/16, 36, GREEN, True)
+        drawTitle('Snakey Party is a Snakey clone made with Pygame.', 5, WINDOWHEIGHT * 4/16, 16, GOLDENROD)
 
-        DISPLAYSURF.blit(instruct, (54, 10))
-
-        endinstructbutton.display()
+        endbutton.display()
 
         for event in pygame.event.get():
             if event.type == QUIT:
                 terminate()
             elif event.type == MOUSEBUTTONDOWN:
                 mouse = pygame.mouse.get_pos()
-                if endinstructbutton.pressed(mouse):
+                if endbutton.pressed(mouse):
                     pygame.event.get()
                     return
             elif event.type == KEYDOWN:
@@ -1647,6 +1646,63 @@ def showInstructScreen():
                     terminate()
 
         pygame.display.update()
+
+
+def showSettingsScreen():
+    """
+    Blits settings onto screen.
+    Adjusts FPS.
+    Returns when exit button clicked / key pressed
+    """
+    resbuttons = []
+    res640button = SelectButton('(1) 640x480', WINDOWWIDTH / 3, WINDOWHEIGHT * 4/8, (640, 480), True)
+    resbuttons.append(res640button)
+    res800button = SelectButton('(2) 800x600', WINDOWWIDTH / 3, WINDOWHEIGHT * 5/8, (800, 600))
+    resbuttons.append(res800button)
+    res1440button = SelectButton('(3) 1440x900', WINDOWWIDTH / 3, WINDOWHEIGHT * 6/8, (1440, 900))
+    resbuttons.append(res1440button)
+    
+    endbutton = Button('(e)xit', WINDOWWIDTH / 2, WINDOWHEIGHT * 7/8)
+    
+    DISPLAYSURF.fill(BACKGROUNDCLR)
+    
+    while True:
+    
+        drawTitle('(O)ptions:')
+        drawTitle('Select Resolution:', WINDOWWIDTH / 3, WINDOWHEIGHT * 2/8, 30, GOLDENROD, True)
+
+        # display all buttons
+        for button in resbuttons:
+            button.display()
+
+        endbutton.display()
+        
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                terminate()
+            elif event.type == MOUSEBUTTONDOWN:
+                mouse = pygame.mouse.get_pos()
+                # check each button for player
+                for button in resbuttons:
+                    if button.pressed(mouse):
+                        button.setActive(resbuttons)
+                        # currently disabled... variables would need to be global
+                        # -- presents too many problems.
+                        # WINDOWWIDTH = button.getvalue()[0]
+                        # WINDOWHEIGHT = button.getvalue()[1]
+                # check exit button
+                if endbutton.pressed(mouse):
+                    pygame.event.get()
+                    return
+            elif event.type == KEYDOWN:
+                if event.key == K_e or event.key == K_o:
+                    pygame.event.get()
+                    return
+                elif event.key == K_ESCAPE or event.key == K_q:
+                    terminate()
+
+        pygame.display.update()
+
 
 
 def terminate():
@@ -1677,14 +1733,14 @@ def showGameStats(allsnake):
             pos_y = WINDOWHEIGHT / 20
             drawMessage(snake.name, pos_x, WINDOWHEIGHT / 20 * 3, snake.getColor())
             if totalscored != 1:
-                drawText('place:', snake.getPlace(totaldead, totalscored), pos_x, pos_y * 5, snake.getColor())
-            drawText('score:', snake.score, pos_x, pos_y * 6, snake.getColor())
-            drawText('apples:', snake.fruitEaten['apple'], pos_x, pos_y * 7, RED)
-            drawText('poison:', snake.fruitEaten['poison'], pos_x, pos_y * 8, GREEN)
-            drawText('oranges:', snake.fruitEaten['orange'], pos_x, pos_y * 9, ORANGE)
-            drawText('raspberries:', snake.fruitEaten['raspberry'], pos_x, pos_y * 10, PURPLE)
-            drawText('blueberries:', snake.fruitEaten['blueberry'], pos_x, pos_y * 11, BLUE)
-            drawText('eggs:', snake.fruitEaten['egg'], pos_x, pos_y * 12, WHITE)
+                drawMessage('place: ' + str(snake.getPlace(totaldead, totalscored)), pos_x, pos_y * 5, snake.getColor())
+            drawMessage('score: ' + str(snake.score), pos_x, pos_y * 6, snake.getColor())
+            drawMessage('apples: ' + str(snake.fruitEaten['apple']), pos_x, pos_y * 7, RED)
+            drawMessage('poison: ' + str(snake.fruitEaten['poison']), pos_x, pos_y * 8, GREEN)
+            drawMessage('oranges: ' + str(snake.fruitEaten['orange']), pos_x, pos_y * 9, ORANGE)
+            drawMessage('raspberries: ' + str(snake.fruitEaten['raspberry']), pos_x, pos_y * 10, PURPLE)
+            drawMessage('blueberries: ' + str(snake.fruitEaten['blueberry']), pos_x, pos_y * 11, BLUE)
+            drawMessage('eggs: ' + str(snake.fruitEaten['egg']), pos_x, pos_y * 12, WHITE)
             position = position + 1
 
     drawMessage('Press any key.', WINDOWWIDTH / 2, pos_y * 19, GOLDENROD)
@@ -1741,26 +1797,15 @@ def getGrid(allsnake, allfruit):
             grid[(fruit.coords['x'], fruit.coords['y'])] = 'egg'
 
     return grid
-
-
-def drawText(text, value, x=1, y=1, color=WHITE, background=BLACK, center=False):
-    """
-    Draws text & value with background to screen.
-    """
-    scoreSurf = BASICFONT.render('%s %s' % (text, value), True, color, background)
-    scoreRect = scoreSurf.get_rect()
-    if center == False:
-        scoreRect.topleft = (x, y)
-    else:
-        scoreRect.center = (x, y)
-    DISPLAYSURF.blit(scoreSurf, scoreRect)
     
     
 def drawMessage(text, x=1, y=1, color=MESSAGECLR, center=False):
     """
     Draws message to screen.
     """
-    messageSurf = BASICFONT.render(text, True, color)
+    size = int (WINDOWWIDTH / 36)
+    font = pygame.font.Font('freesansbold.ttf', size)
+    messageSurf = font.render(text, True, color, BACKGROUNDCLR)
     messageRect = messageSurf.get_rect()
     if center == False:
         messageRect.topleft = (x, y)
@@ -1770,9 +1815,9 @@ def drawMessage(text, x=1, y=1, color=MESSAGECLR, center=False):
     DISPLAYSURF.blit(messageSurf, messageRect)
     
     
-def drawTitle(text, x=1, y=1, size=36, color=GREEN, backgroundColor=BLACK, center=False):
+def drawTitle(text, x=1, y=1, size=36, color=GREEN, center=False):
     titleFont = pygame.font.Font('freesansbold.ttf', size)
-    titleSurf = titleFont.render(text, True, color, backgroundColor)
+    titleSurf = titleFont.render(text, True, color, BACKGROUNDCLR)
     titleRect = titleSurf.get_rect()
     if center == False:
         titleRect.topleft = (x, y)
