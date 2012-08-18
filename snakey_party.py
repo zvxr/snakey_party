@@ -16,7 +16,10 @@ FREEZING_POINT = 8  # target FPS when Blueberry (slow) is in effect.
 WINDOWWIDTH = 640
 WINDOWHEIGHT = 480
 CELLSIZE = 20
-TOP_BUFFER = CELLSIZE * 1  # displays in-game info
+
+# displays in-game info
+# set so that 1 cell is reserved for 640x480, 2 cells for 800x600
+TOP_BUFFER = CELLSIZE * int(WINDOWWIDTH * WINDOWHEIGHT / 200000)
 assert WINDOWWIDTH % CELLSIZE == 0, \
        "Window width must be a multiple of cell size."
 assert (WINDOWHEIGHT - TOP_BUFFER) % CELLSIZE == 0, \
@@ -47,6 +50,11 @@ BUTTONTXT = DARKGRAY
 BUTTONCLR_SEL = COBALTGREEN
 BUTTONTXT_SEL = GOLDENROD
 MESSAGECLR = GREEN
+
+# text sizes for titles
+MEDIUMTITLE = int(WINDOWWIDTH * WINDOWHEIGHT / 9600)
+LARGETITLE = int(WINDOWWIDTH * WINDOWHEIGHT / 6400)
+XLARGETITLE = int(WINDOWWIDTH * WINDOWHEIGHT / 4800)
 
 # for consistency
 UP = 'up'
@@ -245,7 +253,7 @@ class Snake:
 
         # snake not dead
         if self.place == False:
-            return '1st (alive)'
+            return '1st*'
         # if not aborted early
         elif totalalive == 0:
             if self.place == totalscored:
@@ -839,7 +847,7 @@ class Egg(Fruit):
         Add new snake with coords as coords of fruit, and growth of 3.
         Snake is not scored (name and score does not appear).
         """
-        junior = Opponent('junior', [{'x':self.coords['x'] , 'y':self.coords['y']}], PINK, GREEN, 10, 10, -15, [30, 5, 60, 30, 35, 100, 0])
+        junior = Opponent('junior', [{'x':self.coords['x'] , 'y':self.coords['y']}], PINK, GREEN, 10, 10, -20, [35, 5, 40, 30, 35, 15, 0])
         junior.growth = 3
         junior.scored = False
         allsnake.append(junior)
@@ -1171,7 +1179,7 @@ def main():
     while True: ### need to update this
 
         DISPLAYSURF.fill(BACKGROUNDCLR)
-        drawTitle('Snakey Party', WINDOWWIDTH / 2, WINDOWHEIGHT * 1/8, 64, GREEN, True)
+        drawTitle('Snakey Party', WINDOWWIDTH / 2, WINDOWHEIGHT * 1/8, XLARGETITLE, GREEN, True)
         arcadebutton.display()
         duelbutton.display()
         partybutton.display()
@@ -1543,8 +1551,8 @@ def showSelectPlayersScreen():
     while True:
         
         drawTitle('Choose Match-up:')
-        drawTitle('Player 1:', WINDOWWIDTH / 3, WINDOWHEIGHT * 1/7, 30, GOLDENROD, True)
-        drawTitle('Player 2:', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 1/7, 30, GOLDENROD, True)
+        drawTitle('Player 1:', WINDOWWIDTH / 3, WINDOWHEIGHT * 1/7, MEDIUMTITLE, GOLDENROD, True)
+        drawTitle('Player 2:', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 1/7, MEDIUMTITLE, GOLDENROD, True)
 
         # display all buttons
         for button in playerbuttons:
@@ -1612,23 +1620,65 @@ def showSelectPlayersScreen():
                     terminate()
 
         pygame.display.update()
-
+        
 
 def showInstructScreen():
     """
     Blits instructions onto screen. Returns when exit button clicked / key pressed.
     """
-    endbutton = Button('(e)xit', WINDOWWIDTH / 2, WINDOWHEIGHT * 15/16)
-
-    DISPLAYSURF.fill(BACKGROUNDCLR)
-
+    
+    def drawFruit(x, y, color):
+        """
+        Responsible for drawing demo fruit to screen
+        """
+        fruitRect = pygame.Rect(x, y, CELLSIZE, CELLSIZE)
+        pygame.draw.rect(DISPLAYSURF, color, fruitRect)
+    
+    endbutton = Button('(e)xit', WINDOWWIDTH * 3/6, WINDOWHEIGHT * 15/16)
+    nextbutton = Button('(n)ext (->)', WINDOWWIDTH * 5/6, WINDOWHEIGHT * 15/16)
+    prevbutton = Button('(<-) (p)rev', WINDOWWIDTH * 1/6, WINDOWHEIGHT * 15/16)
+    
+    page = 1
+    
     while True:
+    
+        DISPLAYSURF.fill(BACKGROUNDCLR)
 
-        drawTitle('Snakey Party', WINDOWWIDTH / 2, WINDOWHEIGHT * 1/16, 36, GREEN, True)
-        drawTitle('Instructions', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/16, 36, GREEN, True)
-        drawTitle('Snakey Party is a Snakey clone made with Pygame.', 5, WINDOWHEIGHT * 4/16, 16, GOLDENROD)
+        drawTitle('Snakey Party', WINDOWWIDTH / 2, WINDOWHEIGHT * 1/16, MEDIUMTITLE, GREEN, True)
+        drawTitle('Instructions', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/16, MEDIUMTITLE, GREEN, True)
+        
+        if page == 1:
+            drawMessage('A variation on a classic game, Snakey Party is a', 5, WINDOWHEIGHT * 4/16, GOLDENROD)
+            drawMessage('Snakey clone made with Pygame.', 5, WINDOWHEIGHT * 5/16, GOLDENROD)
+            drawMessage('Navigating Snakey with the arrow keys, avoid', 5, WINDOWHEIGHT * 6/16, GOLDENROD)
+            drawMessage('boundaries and other snakes while enjoying a', 5, WINDOWHEIGHT * 7/16, GOLDENROD)
+            drawMessage('buffet of tasty fruits!', 5, WINDOWHEIGHT * 8/16, GOLDENROD)
+        elif page == 2:
+            drawMessage('Fruits when eaten have different effects.', 5, WINDOWHEIGHT * 4/16, GOLDENROD)
+            drawFruit(5, WINDOWHEIGHT * 5/16, RED)
+            drawMessage('Apple (10 points) When eaten will generate more', 55, WINDOWHEIGHT * 5/16, RED)
+            drawMessage('apples. They may also generate other fruits to appear.', 5, WINDOWHEIGHT * 6/16, RED)
+            drawFruit(5, WINDOWHEIGHT * 7/16, GREEN)
+            drawMessage('Poison (-25 points) Causes Snakey to shrink.', 55, WINDOWHEIGHT * 7/16, GREEN)
+            drawFruit(5, WINDOWHEIGHT * 8/16, ORANGE)
+            drawMessage('Orange (50 points) Worth lots of points, and will', 55, WINDOWHEIGHT * 8/16, ORANGE)
+            drawMessage('cause Snakey to grow!', 5, WINDOWHEIGHT * 9/16, ORANGE)
+            drawFruit(5, WINDOWHEIGHT * 10/16, PURPLE)
+            drawMessage('Raspberry  Will cause all fruit to be worth double', 55, WINDOWHEIGHT * 10/16, PURPLE)
+            drawMessage('for a short period of time (time stacks).', 5, WINDOWHEIGHT * 11/16, PURPLE)
+            drawFruit(5, WINDOWHEIGHT * 12/16, BLUE)
+            drawMessage('Blueberry (100 points) Slows everything down for a', 55, WINDOWHEIGHT * 12/16, BLUE)
+            drawMessage('short period of time (time stacks).', 5, WINDOWHEIGHT * 13/16, BLUE)
+        elif page == 3:
+            drawMessage('Modes.', 5, WINDOWHEIGHT * 4/16, GOLDENROD)
+        elif page == 4:
+            drawMessage('AIs.', 5, WINDOWHEIGHT * 4/16, GOLDENROD)
 
         endbutton.display()
+        if page > 1:
+            prevbutton.display()
+        if page < 4:
+            nextbutton.display()
 
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -1638,10 +1688,18 @@ def showInstructScreen():
                 if endbutton.pressed(mouse):
                     pygame.event.get()
                     return
+                elif nextbutton.pressed(mouse):
+                    page = page + 1
+                elif prevbutton.pressed(mouse):
+                    page = page - 1
             elif event.type == KEYDOWN:
                 if event.key == K_e or event.key == K_i:
                     pygame.event.get()
                     return
+                elif (event.key == K_LEFT or event.key == K_p) and page > 1:
+                    page = page - 1
+                elif (event.key == K_RIGHT or event.key == K_n) and page < 4:
+                    page = page + 1
                 elif event.key == K_ESCAPE or event.key == K_q:
                     terminate()
 
@@ -1669,7 +1727,7 @@ def showSettingsScreen():
     while True:
     
         drawTitle('(O)ptions:')
-        drawTitle('Select Resolution:', WINDOWWIDTH / 3, WINDOWHEIGHT * 2/8, 30, GOLDENROD, True)
+        drawTitle('Select Resolution:', WINDOWWIDTH / 3, WINDOWHEIGHT * 2/8, MEDIUMTITLE, GOLDENROD, True)
 
         # display all buttons
         for button in resbuttons:
@@ -1756,12 +1814,7 @@ def showGameOverScreen():
     Displays 'Game Over' message.
     Returns when any key pressed.
     """
-    gameOverFont = pygame.font.Font('freesansbold.ttf', 48)
-    gameOverSurf = gameOverFont.render('Game Over', True, WHITE)
-    gameOverRect = gameOverSurf.get_rect()
-    gameOverRect.midtop = (WINDOWWIDTH / 2, WINDOWHEIGHT / 3 * 2)
-
-    DISPLAYSURF.blit(gameOverSurf, gameOverRect)
+    drawTitle('Game Over', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/4, LARGETITLE, WHITE, True)
     pygame.display.update()
 
 
@@ -1802,8 +1855,11 @@ def getGrid(allsnake, allfruit):
 def drawMessage(text, x=1, y=1, color=MESSAGECLR, center=False):
     """
     Draws message to screen.
+    Size scales depending on window width / height
+    Set so that 640x480 -> 18 pts.
+        800x600 -> 28 pts.
     """
-    size = int (WINDOWWIDTH / 36)
+    size = int (WINDOWWIDTH * WINDOWHEIGHT / 17000)
     font = pygame.font.Font('freesansbold.ttf', size)
     messageSurf = font.render(text, True, color, BACKGROUNDCLR)
     messageRect = messageSurf.get_rect()
@@ -1815,7 +1871,7 @@ def drawMessage(text, x=1, y=1, color=MESSAGECLR, center=False):
     DISPLAYSURF.blit(messageSurf, messageRect)
     
     
-def drawTitle(text, x=1, y=1, size=36, color=GREEN, center=False):
+def drawTitle(text, x=1, y=1, size=MEDIUMTITLE, color=GREEN, center=False):
     titleFont = pygame.font.Font('freesansbold.ttf', size)
     titleSurf = titleFont.render(text, True, color, BACKGROUNDCLR)
     titleRect = titleSurf.get_rect()
