@@ -11,7 +11,7 @@ from pygame.locals import *
 FPS = 12
 MIN_FPS = 3
 MAX_FPS = 60
-FREEZING_POINT = 8  # target FPS when Blueberry (slow) is in effect.
+FREEZING_POINT = 9  # target FPS when Blueberry (slow) is in effect.
 
 WINDOWWIDTH = 640
 WINDOWHEIGHT = 480
@@ -32,6 +32,7 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 BLUE = (0, 0, 255)
 COBALTGREEN = (61, 145, 64)
+DARKBLUE = (25, 25, 112)
 DARKGRAY = (40, 40, 40)
 FORESTGREEN = (34, 139, 34)
 GOLDENROD = (218, 165, 32)
@@ -1093,6 +1094,56 @@ class GameData:
             elif bonusfruit == 'egg':
                 f = Egg(allfruit, allsnake, self)
             allfruit.append(f)
+            
+    def drawScreen(self, allfruit, allsnake, player):
+        """
+        Responsible for drawing everything onto screen.
+        """
+        # clear background
+        DISPLAYSURF.fill(BACKGROUNDCLR)
+
+        # check slow and adjust fps as needed
+        # draw grid to screen as well (color based on slow or normal)
+        if self.checkSlowTimer():
+            self.updateSlowTimer()
+            self.updateCurrentSpeed(FREEZING_POINT)
+            self.drawGrid(DARKBLUE)
+        else:
+            self.updateCurrentSpeed()
+            self.drawGrid()
+
+        # draw everything else to screen
+        for fruit in allfruit:
+            fruit.drawFruit()
+        for snake in allsnake:
+            snake.drawSnake()
+            
+        # print scores only if snake is scored
+        position = 1
+        for snake in allsnake:
+            if snake.scored == True:
+                snake.drawScore(position, allsnake)
+                position = position + 1
+
+        # if player is dead, print extra messages
+        if player == False or player.alive == False:
+            endMessage = 'press (e) to end game early'
+            fastMessage = 'press (f) to fast-forward game'
+            slowMessage = 'press (s) to slow game'
+            drawMessage(endMessage, WINDOWWIDTH / 2, WINDOWHEIGHT / 20 * 16)
+            drawMessage(fastMessage, WINDOWWIDTH / 2, WINDOWHEIGHT / 20 * 17)
+            drawMessage(slowMessage, WINDOWWIDTH / 2, WINDOWHEIGHT / 20 * 18)
+        pygame.display.update()
+        FPSCLOCK.tick(self.currentspeed)
+        
+    def drawGrid(self, color=DARKGRAY):
+        """
+        Draws grid to screen.
+        """
+        for x in range(0, WINDOWWIDTH, CELLSIZE): # draw vertical lines
+            pygame.draw.line(DISPLAYSURF, color, (x, TOP_BUFFER), (x, WINDOWHEIGHT))
+        for y in range(TOP_BUFFER, WINDOWHEIGHT, CELLSIZE): # draw horizontal lines
+            pygame.draw.line(DISPLAYSURF, color, (0, y), (WINDOWWIDTH, y))
 
 
 class Button():
@@ -1174,7 +1225,6 @@ def main():
     partybutton = Button('(p)arty mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 4/8)
     tronybutton = Button('(t)ron-y mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 5/8)
     instructbutton = Button('(i)nstructions', WINDOWWIDTH / 2, WINDOWHEIGHT * 6/8)
-    settingsbutton = Button('(s)ettings', WINDOWWIDTH / 2, WINDOWHEIGHT * 7/8)
 
     while True: ### need to update this
 
@@ -1185,7 +1235,6 @@ def main():
         partybutton.display()
         tronybutton.display()
         instructbutton.display()
-        settingsbutton.display()
 
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -1219,8 +1268,6 @@ def main():
                     showGameOverScreen()
                 elif instructbutton.pressed(mouse):
                     showInstructScreen()
-                elif settingsbutton.pressed(mouse):
-                    showSettingsScreen()
             elif event.type == KEYDOWN:
                 if event.key == K_a:
                     pygame.event.get()
@@ -1249,8 +1296,6 @@ def main():
                     showGameOverScreen()
                 elif event.key == K_i:
                     showInstructScreen()
-                elif event.key == K_s:
-                    showSettingsScreen()
                 elif event.key == K_ESCAPE or event.key == K_q:
                     terminate()
 
@@ -1421,18 +1466,6 @@ def runGame(game, players=[]):
                 snake.multiplier = 1
                 snake.resetColorBorder()
 
-        # check slow and adjust color and fps as needed
-        if game.checkSlowTimer():
-            game.updateSlowTimer()
-            game.updateCurrentSpeed(FREEZING_POINT)
-            for snake in allsnake:
-                snake.setColorCurrent(BLUE)
-        else:
-            game.updateCurrentSpeed()
-            # make sure color is normal
-            for snake in allsnake:
-                snake.resetColor()
-
         # update timers on fruits, remove if necessary
         for fruit in allfruit:
             if fruit.__class__ != Apple:
@@ -1441,32 +1474,9 @@ def runGame(game, players=[]):
                     if fruit.__class__ == Egg:
                         fruit.isHatched(allsnake)
                     allfruit.remove(fruit)
-
+                    
         # draw everything to screen
-        DISPLAYSURF.fill(BACKGROUNDCLR)
-        drawGrid()
-        for fruit in allfruit:
-            fruit.drawFruit()
-        for snake in allsnake:
-            snake.drawSnake()
-            
-        # print scores only if snake is scored
-        position = 1
-        for snake in allsnake:
-            if snake.scored == True:
-                snake.drawScore(position, allsnake)
-                position = position + 1
-
-        # if player is dead, print extra messages
-        if player == False or player.alive == False:
-            endMessage = 'press (e) to end game early'
-            fastMessage = 'press (f) to fast-forward game'
-            slowMessage = 'press (s) to slow game'
-            drawMessage(endMessage, WINDOWWIDTH / 2, WINDOWHEIGHT / 20 * 16)
-            drawMessage(fastMessage, WINDOWWIDTH / 2, WINDOWHEIGHT / 20 * 17)
-            drawMessage(slowMessage, WINDOWWIDTH / 2, WINDOWHEIGHT / 20 * 18)
-        pygame.display.update()
-        FPSCLOCK.tick(game.currentspeed)
+        game.drawScreen(allfruit, allsnake, player)
 
 
 def checkForKeyPress():
@@ -1706,63 +1716,6 @@ def showInstructScreen():
         pygame.display.update()
 
 
-def showSettingsScreen():
-    """
-    Blits settings onto screen.
-    Adjusts FPS.
-    Returns when exit button clicked / key pressed
-    """
-    resbuttons = []
-    res640button = SelectButton('(1) 640x480', WINDOWWIDTH / 3, WINDOWHEIGHT * 4/8, (640, 480), True)
-    resbuttons.append(res640button)
-    res800button = SelectButton('(2) 800x600', WINDOWWIDTH / 3, WINDOWHEIGHT * 5/8, (800, 600))
-    resbuttons.append(res800button)
-    res1440button = SelectButton('(3) 1440x900', WINDOWWIDTH / 3, WINDOWHEIGHT * 6/8, (1440, 900))
-    resbuttons.append(res1440button)
-    
-    endbutton = Button('(e)xit', WINDOWWIDTH / 2, WINDOWHEIGHT * 7/8)
-    
-    DISPLAYSURF.fill(BACKGROUNDCLR)
-    
-    while True:
-    
-        drawTitle('(O)ptions:')
-        drawTitle('Select Resolution:', WINDOWWIDTH / 3, WINDOWHEIGHT * 2/8, MEDIUMTITLE, GOLDENROD, True)
-
-        # display all buttons
-        for button in resbuttons:
-            button.display()
-
-        endbutton.display()
-        
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                terminate()
-            elif event.type == MOUSEBUTTONDOWN:
-                mouse = pygame.mouse.get_pos()
-                # check each button for player
-                for button in resbuttons:
-                    if button.pressed(mouse):
-                        button.setActive(resbuttons)
-                        # currently disabled... variables would need to be global
-                        # -- presents too many problems.
-                        # WINDOWWIDTH = button.getvalue()[0]
-                        # WINDOWHEIGHT = button.getvalue()[1]
-                # check exit button
-                if endbutton.pressed(mouse):
-                    pygame.event.get()
-                    return
-            elif event.type == KEYDOWN:
-                if event.key == K_e or event.key == K_o:
-                    pygame.event.get()
-                    return
-                elif event.key == K_ESCAPE or event.key == K_q:
-                    terminate()
-
-        pygame.display.update()
-
-
-
 def terminate():
     """
     Clean exit from pygame.
@@ -1881,16 +1834,6 @@ def drawTitle(text, x=1, y=1, size=MEDIUMTITLE, color=GREEN, center=False):
         titleRect.center = (x, y)
 
     DISPLAYSURF.blit(titleSurf, titleRect)
-
-
-def drawGrid():
-    """
-    Draws grid to screen.
-    """
-    for x in range(0, WINDOWWIDTH, CELLSIZE): # draw vertical lines
-        pygame.draw.line(DISPLAYSURF, DARKGRAY, (x, TOP_BUFFER), (x, WINDOWHEIGHT))
-    for y in range(TOP_BUFFER, WINDOWHEIGHT, CELLSIZE): # draw horizontal lines
-        pygame.draw.line(DISPLAYSURF, DARKGRAY, (0, y), (WINDOWWIDTH, y))
 
 
 def debugPause():
