@@ -790,18 +790,20 @@ class Blueberry(Fruit):
 
 class Lemon(Fruit):
     """
-    TBD... currently worth 1000 points.
+    Lemon will grow snake to mythic proportions.
     """
     def __init__(self, allfruit, allsnake, game):
         self.coords = Fruit.getRandomLocation(self, allfruit, allsnake, game)
         self.timer = random.randint(LEMONTIMER[0], LEMONTIMER[1])
         self.color = YELLOW
-        self.score = 1000
+        self.score = 500
+        self.growth = 20
 
     def isEaten(self, snake, game):
         snake.fruitEaten['lemon'] = snake.fruitEaten['lemon'] + 1
         game.fruitEaten['lemon'] = game.fruitEaten['lemon'] + 1
         snake.updateScore(self.score)
+        snake.updateGrowth(self.growth)
         snake.updateColor({'blue': -20})
 
     def updateTimer(self):
@@ -873,7 +875,6 @@ class GameData:
     fruitEaten - a dictionary containing a numeric tally of each fruit eaten.
     speedTrigger - the frequency (based on apples consumed) in which gamespeed is increased by one.
     bonusFruitTrigger - the frequency (based on apples consumed) in which a bonus game is launched.
-    bonusSnakeTrigger - the frequency (based on apples consumed) in which an egg is placed on screen.
     easyTrigger - a threshold (apples consumed); once reached fruit can be placed anywhere on screen (as opposed to away from edges).
     currentplace - the current 'place' of snake. When snake has died.
     apples - number of apples on screen.
@@ -883,7 +884,6 @@ class GameData:
                            'blueberry':0, 'lemon':0, 'egg':0}
         self.speedTrigger = st
         self.bonusFruitTrigger = bft
-        self.bonusSnakeTrigger = False
         self.easyTrigger = et
         self.currentplace = 1
         self.apples = a
@@ -895,7 +895,7 @@ class GameData:
         self.orangeDrop = 5
         self.raspberryDrop = 6
         self.blueberryDrop = 25
-        self.lemonDrop = False
+        self.lemonDrop = 100
         self.eggDrop = 12
 
     def checkSpeedTrigger(self):
@@ -1206,6 +1206,75 @@ class SelectButton(Button):
         return self.value
 
 
+class InputButton(Button, SelectButton):
+    """
+    still in testing
+    """
+    def __init__(self, value, x, y, min=1, max=9999, a=False):
+        # set-up center rectangle
+        self.value = value
+        size = int (WINDOWWIDTH / 18)
+        self.font = pygame.font.Font('freesansbold.ttf', size)
+        self.startSurf = self.font.render('-', True, BUTTONCLR, BUTTONTXT)
+        self.rect = self.startSurf.get_rect()
+        self.rect.center = x,y
+        self.min = min
+        self.max = max
+        self.active = a
+        # set-up decrease arrow
+        self.decreaseSurf = pygame.Surface((size, size))
+        self.decreaseSurf.fill(GREEN)
+        # set-up increase arrow
+        self.increaseSurf = pygame.Surface((size, size))
+        self.increaseSurf.fill(GREEN)
+        #arrowcenterleft = (self.rect.left - size, self.rect.centery)
+        #self.decrease = pygame.draw.lines(self.decreaseSurf, BLACK, True, [self.rect.topleft, arrowcenterleft, self.rect.bottomleft], 3)
+        self.decrease = self.decreaseSurf.get_rect(topleft=(self.rect.topleft[0] - size, self.rect.topleft[1]))
+        self.increase = self.increaseSurf.get_rect(topleft=(self.rect.topright[0] + size, self.rect.topright[1]))
+
+    def display(self):
+        if self.active == True:
+            self.startSurf = self.font.render(str(self.value), True, BUTTONCLR_SEL, BUTTONTXT_SEL)
+        else:
+            self.startSurf = self.font.render(str(self.value), True, BUTTONCLR, BUTTONTXT)
+
+        DISPLAYSURF.blit(self.startSurf, self.rect)
+        DISPLAYSURF.blit(self.decreaseSurf, self.decrease)
+        DISPLAYSURF.blit(self.increaseSurf, self.increase)
+        
+    def pressed(self, mouse, buttonlist):
+        # if decrease is pressed
+        if mouse[0] > self.decrease.topleft[0] and \
+           mouse[1] > self.decrease.topleft[1] and \
+           mouse[0] < self.decrease.bottomright[0] and \
+           mouse[1] < self.decrease.bottomright[1]:
+            self.setActive(buttonlist)
+            self.setValue(-1)
+        # if increase is pressed
+        elif mouse[0] > self.increase.topleft[0] and \
+           mouse[1] > self.increase.topleft[1] and \
+           mouse[0] < self.increase.bottomright[0] and \
+           mouse[1] < self.increase.bottomright[1]:
+            self.setActive(buttonlist)
+            self.setValue(1)
+        elif Button.pressed(self, mouse):
+            self.setActive(buttonlist)
+
+    def getActive(self):
+        return SelectButton.getActive(self)
+        
+    def setActive(self, buttonlist):
+        SelectButton.setActive(self, buttonlist)
+        
+    def getValue(self):
+        return SelectButton.getValue(self)
+        
+    def setValue(self, change):
+        newValue = self.value + change
+        if newValue <= self.max and newValue >= self.min:
+            self.value = newValue
+            
+
 def main():
     global FPSCLOCK, DISPLAYSURF, DEBUG
     
@@ -1224,7 +1293,8 @@ def main():
     duelbutton = Button('(d)uel mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/8)
     partybutton = Button('(p)arty mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 4/8)
     tronybutton = Button('(t)ron-y mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 5/8)
-    instructbutton = Button('(i)nstructions', WINDOWWIDTH / 2, WINDOWHEIGHT * 6/8)
+    sandboxbutton = Button('(s)andbox mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 6/8)
+    instructbutton = Button('(i)nstructions', WINDOWWIDTH / 2, WINDOWHEIGHT * 7/8)
 
     while True: ### need to update this
 
@@ -1234,6 +1304,7 @@ def main():
         duelbutton.display()
         partybutton.display()
         tronybutton.display()
+        sandboxbutton.display()
         instructbutton.display()
 
         for event in pygame.event.get():
@@ -1266,6 +1337,8 @@ def main():
                     game.trailing = True
                     runGame(game, [SNAKEY, LINUS, WIGGLES, GOOBER])
                     showGameOverScreen()
+                elif sandboxbutton.pressed(mouse):
+                    showSandboxScreen()
                 elif instructbutton.pressed(mouse):
                     showInstructScreen()
             elif event.type == KEYDOWN:
@@ -1294,6 +1367,8 @@ def main():
                     game.trailing = True
                     runGame(game, [SNAKEY, LINUS, WIGGLES, GOOBER])
                     showGameOverScreen()
+                elif event.key == K_s:
+                    showSandboxScreen()
                 elif event.key == K_i:
                     showInstructScreen()
                 elif event.key == K_ESCAPE or event.key == K_q:
@@ -1630,7 +1705,66 @@ def showSelectPlayersScreen():
                     terminate()
 
         pygame.display.update()
+
+
+def showSandboxScreen():
+    """
+    Blits sandbox mode onto screen.
+    """
+    
+    buttons = []
+    snakesbutton = InputButton(1, WINDOWWIDTH * 2/3, WINDOWHEIGHT * 2/8, 1, 4, True)
+    buttons.append(snakesbutton)
+    fpsbutton = InputButton(12, WINDOWWIDTH * 2/3, WINDOWHEIGHT * 3/8, 3, 60)
+    buttons.append(fpsbutton)
+    
+
+    cancelbutton = Button('(e)xit', WINDOWWIDTH * 1/3, WINDOWHEIGHT * 7/8)
+    acceptbutton = Button('(s)tart', WINDOWWIDTH * 2/3, WINDOWHEIGHT * 7/8)
+
+    while True:
+    
+        DISPLAYSURF.fill(BACKGROUNDCLR)
         
+        drawTitle('Sandbox Mode:')
+        drawTitle('Snakes:', WINDOWWIDTH * 1/3, WINDOWHEIGHT * 2/8, MEDIUMTITLE, GOLDENROD, True)
+        drawTitle('Starting FPS:', WINDOWWIDTH * 1/3, WINDOWHEIGHT * 3/8, MEDIUMTITLE, GOLDENROD, True)
+
+        # display all buttons
+        
+        snakesbutton.display()
+        fpsbutton.display()
+        cancelbutton.display()
+        acceptbutton.display()
+
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                terminate()
+            elif event.type == MOUSEBUTTONDOWN:
+                mouse = pygame.mouse.get_pos()
+                # check buttons
+                for button in buttons:
+                    button.pressed(mouse, buttons)
+                # check cancel/accept buttons
+                if cancelbutton.pressed(mouse):
+                    pygame.event.get()
+                    return False
+                elif acceptbutton.pressed(mouse):
+                    pygame.event.get()
+                    return False
+
+            elif event.type == KEYDOWN:
+                if event.key == K_s:
+                    pygame.event.get()
+                    return False
+                elif event.key == K_e:
+                    pygame.event.get()
+                    return False
+                elif event.key == K_ESCAPE or event.key == K_q:
+                    terminate()
+
+        pygame.display.update()
+
 
 def showInstructScreen():
     """
