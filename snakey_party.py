@@ -82,7 +82,7 @@ EGGTIMER = (40, 70)
 class Snake:
     """
     Snake class houses all information for a particular snake.
-    player - if snake is the player. Player snake is also referenced directly when player snake object is created.
+    player - if snake is the player.
     name - name of snake.
     alive - if snake is alive. Rather than delete, this allows snake to slowly shrink to the point of where it died.
     coords - a list of dictionaries containing coordinates 'x' and 'y'. A special global variable HEAD (0).
@@ -114,7 +114,7 @@ class Snake:
                 self.direction = RIGHT
             else:
                 self.direction = LEFT
-        # egg -- for now until AI direction fixed
+        # egg is just hatched-- for now goes left initially
         else:
              self.direction = LEFT
         
@@ -489,8 +489,6 @@ class Opponent(Snake):
         visited coords are ignored.
         coords containing a snake are affected by avoidSnake variable
         """
-        #if DEBUG == True:
-        #    print 'look for %s at (%s, %s)- depth %s' % (self.name, x, y, depth)
         if depth < 1:
             return
         elif self.grid.has_key((x,y)):
@@ -1278,11 +1276,8 @@ class InputButton(Button, SelectButton):
 def main():
     global FPSCLOCK, DISPLAYSURF, DEBUG
     
-    # for debugging
-    if len(sys.argv) < 2:
-        DEBUG = False
-    else:
-        DEBUG = True
+    # switch for debugging
+    DEBUG = False
 
     pygame.init()
     FPSCLOCK = pygame.time.Clock()
