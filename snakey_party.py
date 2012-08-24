@@ -13,8 +13,27 @@ MIN_FPS = 3
 MAX_FPS = 60
 FREEZING_POINT = 9  # target FPS when Blueberry (slow) is in effect.
 
-WINDOWWIDTH = 640
-WINDOWHEIGHT = 480
+
+# set width and height of screen - optional arguments:
+# python snakey_party.py [width] [height]
+
+if len(sys.argv) > 1:
+    try:
+        WINDOWWIDTH = int(sys.argv[1])
+    except ValueError:
+        print("Width is not an integer.")
+    if len(sys.argv) > 2:
+        try:
+            WINDOWHEIGHT = int(sys.argv[2])
+        except ValueError:
+            print("Height is not an integer.")
+    else:
+        WINDOWHEIGHT = 480
+else:
+    WINDOWWIDTH = 640
+    WINDOWHEIGHT = 480
+
+
 CELLSIZE = 20
 
 # displays in-game info
