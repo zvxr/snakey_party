@@ -5,7 +5,7 @@
 # snake size, and other in-game effects.
 # Includes various Snake AIs and game modes (Arcade, Duel, Party).
 
-import random, pygame, sys
+import copy, random, pygame, sys
 from pygame.locals import *
 from classes.const import *
 from classes.methods import *
@@ -13,6 +13,7 @@ from classes.button import *
 from classes.snake import *
 from classes.fruit import *
 from classes.gamedata import *
+from classes.game import Game
             
 
 def main():
@@ -22,99 +23,87 @@ def main():
     #FPSCLOCK = pygame.time.Clock()
     #DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
     pygame.display.set_caption('Snakey Party')
+    col_header = WINDOWWIDTH * 1/2
+    col_one = WINDOWWIDTH * 1/3
+    col_two = WINDOWWIDTH * 2/3
+    row_header = WINDOWHEIGHT * 1/8
+    row_one = WINDOWHEIGHT * 3/8
+    row_two = WINDOWHEIGHT * 4/8
+    row_three = WINDOWHEIGHT * 5/8
+    row_four = WINDOWHEIGHT * 6/8
+    row_five = WINDOWHEIGHT * 7/8
+    buttonlist = []
+    
+    # classic mode
+    cbutton = Button('(c)lassic mode', (col_one, row_one), K_c)
+    cbutton.game = Game()
+    buttonlist.append(cbutton)
+    # arcade mode
+    abutton = Button('(a)rcade mode', (col_one, row_two), K_a)
+    abutton.game = Game(apples=20)
+    buttonlist.append(abutton)
+    # duel mode
+    dbutton = DuelButton('(d)uel mode', (col_one, row_three), K_d)
+    dbutton.game = Game(apples=2, eggDrop=12, speedTrigger=10, easyTrigger=9)
+    buttonlist.append(dbutton)
+    # fast duel mode
+    fbutton = DuelButton('(f)ast duel', (col_one, row_four), K_f)
+    fbutton.game = Game(apples=2, speedTrigger=10, easyTrigger=19, basespeed=20, bonusFruitTrigger=7, eggDrop=10, orangeDrop=4)
+    buttonlist.append(fbutton)
+    # party mode
+    pbutton = PartyButton('(p)arty mode', (col_one, row_five), K_p)
+    pbutton.game = Game(apples=4, speedTrigger=25, easyTrigger=0, bonusFruitTrigger=12)
+    buttonlist.append(pbutton)
+    # tron mode
+    tbutton = PartyButton('(t)ron mode', (col_two, row_one), K_t)
+    tbutton.game = Game(trailing=True)
+    buttonlist.append(tbutton)
+    # TBD
+    # (col_two, row_two)
+    #
+    # sandbox mode
+    sbutton = SandboxButton('(s)andbox mode', (col_two, row_three), K_s)
+    buttonlist.append(sbutton)
+    # instructions
+    ibutton = InstructButton('(i)nstructions', (col_two, row_four), K_i)
+    buttonlist.append(ibutton)
 
-    arcadebutton = Button('(a)rcade mode', (WINDOWWIDTH / 2, WINDOWHEIGHT * 2/8), K_a) # use range? should be a list of some sort.
-    duelbutton = Button('(d)uel mode', (WINDOWWIDTH / 2, WINDOWHEIGHT * 3/8))
-    partybutton = Button('(p)arty mode', (WINDOWWIDTH / 2, WINDOWHEIGHT * 4/8))
-    tronybutton = Button('(t)ron-y mode', (WINDOWWIDTH / 2, WINDOWHEIGHT * 5/8))
-    sandboxbutton = Button('(s)andbox mode', (WINDOWWIDTH / 2, WINDOWHEIGHT * 6/8))
-    instructbutton = Button('(i)nstructions', (WINDOWWIDTH / 2, WINDOWHEIGHT * 7/8))
-
-    while True: ### need to update this
-
+    
+    while True:
         DISPLAYSURF.fill(BACKGROUNDCOLOR)
-        drawTitle('Snakey Party', WINDOWWIDTH / 2, WINDOWHEIGHT * 1/8, XLARGETITLE, GREEN, True)
-        arcadebutton.display()
-        duelbutton.display()
-        partybutton.display()
-        tronybutton.display()
-        sandboxbutton.display()
-        instructbutton.display()
-
+        drawTitle('Snakey Party', col_header, row_header, XLARGETITLE, GREEN, True)
+        for button in buttonlist:
+            button.display()
+            
         for event in pygame.event.get():
             if event.type == QUIT:
                 terminate()
-            elif event.type == MOUSEBUTTONDOWN:
-                mouse = pygame.mouse.get_pos()
-                if arcadebutton.pressed(mouse):
-                    pygame.event.get()
-                    game = GameData()
-                    runGame(game, [SNAKEY])
-                    showGameOverScreen()
-                elif duelbutton.pressed(mouse):
-                    pygame.event.get()
-                    players = False
-                    players = showSelectPlayersScreen()
-                    if players != False:
-                        game = GameData(10, 10, 9, 2)
-                        runGame(game, players)
+            elif (event.type == KEYDOWN and event.key == K_ESCAPE):
+                terminate()
+            for button in buttonlist:
+                if (event.type == MOUSEBUTTONDOWN and button.pressed(pygame.mouse.get_pos())) or \
+                    (event.type == KEYDOWN and button.keypressed(event.key)):
+                    if button.game:
+                        game = copy.copy(button.game)
+                        # get players involved
+                        if hasattr(button, 'getplayers'):
+                            players = button.getplayers()
+                        else:
+                            players = [SNAKEY]
+                        rungame(game, players)
                         showGameOverScreen()
-                elif partybutton.pressed(mouse):
-                    pygame.event.get()
-                    game = GameData(25, 12, 0, 4)
-                    players = getPlayers()
-                    runGame(game, players)
-                    showGameOverScreen()
-                elif tronybutton.pressed(mouse):
-                    pygame.event.get()
-                    game = GameData(25, 12, 0, 0)
-                    game.trailing = True
-                    runGame(game, [SNAKEY, LINUS, WIGGLES, GOOBER])
-                    showGameOverScreen()
-                elif sandboxbutton.pressed(mouse):
-                    showSandboxScreen()
-                elif instructbutton.pressed(mouse):
-                    showInstructScreen()
-            elif event.type == KEYDOWN:
-                #if event.key == K_a:
-                if arcadebutton.keypressed(event.key):
-                    pygame.event.get()
-                    game = GameData()
-                    runGame(game, [SNAKEY])
-                    showGameOverScreen()
-                elif event.key == K_d:
-                    pygame.event.get()
-                    players = False
-                    players = showSelectPlayersScreen()
-                    if players != False:
-                        game = GameData(10, 10, 9, 2)
-                        runGame(game, players)
+                    elif hasattr(button, 'getgame'):
+                        game, players = button.getgame()
+                        rungame(game, players)
                         showGameOverScreen()
-                elif event.key == K_p:
-                    pygame.event.get()
-                    game = GameData(25, 12, 0, 4)
-                    players = getPlayers()
-                    runGame(game, players)
-                    showGameOverScreen()
-                elif event.key == K_t:
-                    pygame.event.get()
-                    game = GameData(25, 12, 0, 0)
-                    game.trailing = True
-                    runGame(game, [SNAKEY, LINUS, WIGGLES, GOOBER])
-                    showGameOverScreen()
-                elif event.key == K_s:
-                    showSandboxScreen()
-                elif event.key == K_i:
-                    showInstructScreen()
-                elif event.key == K_ESCAPE or event.key == K_q:
-                    terminate()
-
-        game = False
+                    elif hasattr(button, 'showinstruct'):
+                        button.showinstruct()
+        
         pygame.display.update()
         FPSCLOCK.tick(FPS)
-        
 
-def runGame(game, players=[]):
+
+def rungame(game, players=[]):
 
     # in game variables
     allsnake = []

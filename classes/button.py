@@ -3,20 +3,22 @@
 import random, pygame, sys
 from pygame.locals import *
 from const import *
+import methods
 
 
 class Button():
     """
     A clickable button that is rendered on screen.
     """
-    def __init__(self, text, (x, y), key=None): # (x,y)
-        self.text = text # (str)
+    def __init__(self, text, (x, y), key=None):
+        self.text = str(text)
         size = int (WINDOWWIDTH / 18)
         self.font = pygame.font.Font('freesansbold.ttf', size) # FONT default?
         self.startSurf = self.font.render(self.text, True, BUTTONCOLOR, BUTTONTEXT) # Refactor BUTTONCOLOR BUTTONTEXT -- must surf be self.?
         self.rect = self.startSurf.get_rect()
         self.rect.center = x,y
         self.key = key
+        self.game = None
 
     def display(self):
         DISPLAYSURF.blit(self.startSurf, self.rect)
@@ -29,7 +31,57 @@ class Button():
     
     def keypressed(self, key):
         return key == self.key
+    
+
+class DuelButton(Button):
+    """ Includes getplayers() method; choice on screen. """
+    def __init__(self, text, (x, y), key=None):
+        Button.__init__(self, text, (x, y), key)
         
+    def getplayers(self):
+        return methods.showSelectPlayersScreen()
+
+
+class PartyButton(Button):
+    """ Includes getplayers(); randomly adds players. """
+    def __init__(self, text, (x, y), key=None):
+        Button.__init__(self, text, (x, y), key)
+        self.numplayers = 4
+        
+    def getplayers(self):
+        """ Generates and returns list of players, numplayers long.
+            First position is always SNAKEY. """
+        players = [SNAKEY]
+        while len(players) < self.numplayers:
+            r = random.randint(1,3)
+            if r == 1:
+                players.append(LINUS)
+            elif r == 2:
+                players.append(WIGGLES)
+            else:
+                players.append(GOOBER)
+        return players
+    
+
+class InstructButton(Button):
+    """ Shows instructions. """
+    def __init__(self, text, (x, y), key=None):
+        Button.__init__(self, text, (x, y), key)
+        
+    def showinstructions(self):
+        methods.showInstructScreen()
+        
+        
+class SandboxButton(Button, PartyButton):
+    """ Includes getplayers() and getgame(). """
+    def __init__(self, text, (x, y), key=None):
+        PartyButton.__init__(self, text, (x, y), key)
+        
+    def getgame(self):
+        """ Brings up selection screen; returns tupe containing
+            Game object and snakes. """
+        self.game = methods.showSandboxScreen() # will not work for now
+        return (self.game, self.getplayers())
 
 
 class SelectButton(Button):
