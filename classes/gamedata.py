@@ -238,7 +238,7 @@ class GameData:
         Responsible for drawing everything onto screen.
         """
         # clear background
-        DISPLAYSURF.fill(BACKGROUNDCLR)
+        DISPLAYSURF.fill(BACKGROUNDCOLOR)
 
         # check slow and adjust fps as needed
         # draw grid to screen as well (color based on slow or normal)

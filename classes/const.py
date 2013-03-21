@@ -5,7 +5,7 @@ import sys, pygame
 
 FPS = 12
 MIN_FPS = 3
-MAX_FPS = 60
+MAX_FPS = 60 # find out true max/min - display?
 FREEZING_POINT = 9  # target FPS when Blueberry (slow) is in effect.
 
 # set width and height of screen - optional arguments:
@@ -57,12 +57,12 @@ RED = (255, 0, 0)
 SLATEBLUE = (131, 111, 255)
 YELLOW = (238, 238, 0)
 
-BACKGROUNDCLR = BLACK
-BUTTONCLR = GREEN
-BUTTONTXT = DARKGRAY
-BUTTONCLR_SEL = COBALTGREEN
-BUTTONTXT_SEL = GOLDENROD
-MESSAGECLR = GREEN
+BACKGROUNDCOLOR = BLACK
+BUTTONCOLOR = GREEN
+BUTTONTEXT = DARKGRAY
+BUTTONCOLOR_SEL = COBALTGREEN
+BUTTONTEXT_SEL = GOLDENROD
+MESSAGECOLOR = GREEN
 
 # for consistency
 UP = 'up'

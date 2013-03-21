@@ -9,25 +9,27 @@ class Button():
     """
     A clickable button that is rendered on screen.
     """
-    def __init__(self, text, x, y):
-        self.text = text
+    def __init__(self, text, (x, y), key=None): # (x,y)
+        self.text = text # (str)
         size = int (WINDOWWIDTH / 18)
-        self.font = pygame.font.Font('freesansbold.ttf', size)
-        self.startSurf = self.font.render(self.text, True, BUTTONCLR, BUTTONTXT)
+        self.font = pygame.font.Font('freesansbold.ttf', size) # FONT default?
+        self.startSurf = self.font.render(self.text, True, BUTTONCOLOR, BUTTONTEXT) # Refactor BUTTONCOLOR BUTTONTEXT -- must surf be self.?
         self.rect = self.startSurf.get_rect()
         self.rect.center = x,y
+        self.key = key
 
     def display(self):
         DISPLAYSURF.blit(self.startSurf, self.rect)
 
-    def pressed(self, mouse):
-        if mouse[0] > self.rect.topleft[0] and \
+    def pressed(self, mouse): # return conditions
+        return mouse[0] > self.rect.topleft[0] and \
            mouse[1] > self.rect.topleft[1] and \
            mouse[0] < self.rect.bottomright[0] and \
-           mouse[1] < self.rect.bottomright[1]:
-            return True
-        else:
-            return False
+           mouse[1] < self.rect.bottomright[1]
+    
+    def keypressed(self, key):
+        return key == self.key
+        
 
 
 class SelectButton(Button):
@@ -35,16 +37,16 @@ class SelectButton(Button):
     Selected by color. Clicking will turn active state to True.
     Contains a value that is returned with getValue().
     """
-    def __init__(self, text, x, y, v, a=False):
-        Button.__init__(self, text, x, y)
+    def __init__(self, text, (x, y), v, a=False):
+        Button.__init__(self, text, (x, y))
         self.value = v
         self.active = a
         
     def display(self):
         if self.active == True:
-            self.startSurf = self.font.render(self.text, True, BUTTONCLR_SEL, BUTTONTXT_SEL)
+            self.startSurf = self.font.render(self.text, True, BUTTONCOLOR_SEL, BUTTONTEXT_SEL)
         else:
-            self.startSurf = self.font.render(self.text, True, BUTTONCLR, BUTTONTXT)
+            self.startSurf = self.font.render(self.text, True, BUTTONCOLOR, BUTTONTEXT)
             
         DISPLAYSURF.blit(self.startSurf, self.rect)
         
@@ -54,7 +56,7 @@ class SelectButton(Button):
     def getActive(self):
         return self.active
 
-    def setActive(self, buttonlist):
+    def setActive(self, buttonlist): # activate(blist): for b in blist...
         for button in buttonlist:
             if button == self:
                 self.active = True
@@ -65,16 +67,16 @@ class SelectButton(Button):
         return self.value
 
 
-class InputButton(Button, SelectButton):
+class InputButton(Button, SelectButton): # Don't deal w/ this yet
     """
     still in testing
     """
-    def __init__(self, value, x, y, min=1, max=9999, a=False):
+    def __init__(self, value, (x, y), min=1, max=9999, a=False):
         # set-up center rectangle
         self.value = value
         size = int (WINDOWWIDTH / 18)
         self.font = pygame.font.Font('freesansbold.ttf', size)
-        self.startSurf = self.font.render('-', True, BUTTONCLR, BUTTONTXT)
+        self.startSurf = self.font.render('-', True, BUTTONCOLOR, BUTTONTEXT)
         self.rect = self.startSurf.get_rect()
         self.rect.center = x,y
         self.min = min
@@ -93,9 +95,9 @@ class InputButton(Button, SelectButton):
 
     def display(self):
         if self.active == True:
-            self.startSurf = self.font.render(str(self.value), True, BUTTONCLR_SEL, BUTTONTXT_SEL)
+            self.startSurf = self.font.render(str(self.value), True, BUTTONCOLOR_SEL, BUTTONTEXT_SEL)
         else:
-            self.startSurf = self.font.render(str(self.value), True, BUTTONCLR, BUTTONTXT)
+            self.startSurf = self.font.render(str(self.value), True, BUTTONCOLOR, BUTTONTEXT)
 
         DISPLAYSURF.blit(self.startSurf, self.rect)
         DISPLAYSURF.blit(self.decreaseSurf, self.decrease)

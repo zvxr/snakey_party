@@ -28,27 +28,27 @@ def showSelectPlayersScreen():
     Blits player/opponent select onto screen. Returns selection as list.
     """
     playerbuttons = []
-    playersnakeybutton = SelectButton('(s)nakey', WINDOWWIDTH / 3, WINDOWHEIGHT * 2/7, SNAKEY, True)
+    playersnakeybutton = SelectButton('(s)nakey', (WINDOWWIDTH / 3, WINDOWHEIGHT * 2/7), SNAKEY, True)
     playerbuttons.append(playersnakeybutton)
-    playerlinusbutton = SelectButton('(l)inus', WINDOWWIDTH / 3, WINDOWHEIGHT * 3/7, LINUS)
+    playerlinusbutton = SelectButton('(l)inus', (WINDOWWIDTH / 3, WINDOWHEIGHT * 3/7), LINUS)
     playerbuttons.append(playerlinusbutton)
-    playerwigglesbutton = SelectButton('(w)iggles', WINDOWWIDTH / 3, WINDOWHEIGHT * 4/7, WIGGLES)
+    playerwigglesbutton = SelectButton('(w)iggles', (WINDOWWIDTH / 3, WINDOWHEIGHT * 4/7), WIGGLES)
     playerbuttons.append(playerwigglesbutton)
-    playergooberbutton = SelectButton('(g)oober', WINDOWWIDTH / 3, WINDOWHEIGHT * 5/7, GOOBER)
+    playergooberbutton = SelectButton('(g)oober', (WINDOWWIDTH / 3, WINDOWHEIGHT * 5/7), GOOBER)
     playerbuttons.append(playergooberbutton)
     
     opponentbuttons = []
-    opponentlinusbutton = SelectButton('(l)inus', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 3/7, LINUS, True)
+    opponentlinusbutton = SelectButton('(l)inus', (WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 3/7), LINUS, True)
     opponentbuttons.append(opponentlinusbutton)
-    opponentwigglesbutton = SelectButton('(w)iggles', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 4/7, WIGGLES)
+    opponentwigglesbutton = SelectButton('(w)iggles', (WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 4/7), WIGGLES)
     opponentbuttons.append(opponentwigglesbutton)
-    opponentgooberbutton = SelectButton('(g)oober', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 5/7, GOOBER)
+    opponentgooberbutton = SelectButton('(g)oober', (WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 5/7), GOOBER)
     opponentbuttons.append(opponentgooberbutton)
     
-    cancelbutton = Button('(e)xit', WINDOWWIDTH / 3, WINDOWHEIGHT * 6/7)
-    acceptbutton = Button('(d)uel!', WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 6/7)
+    cancelbutton = Button('(e)xit', (WINDOWWIDTH / 3, WINDOWHEIGHT * 6/7))
+    acceptbutton = Button('(d)uel!', (WINDOWWIDTH / 3 * 2, WINDOWHEIGHT * 6/7))
     
-    DISPLAYSURF.fill(BACKGROUNDCLR)
+    DISPLAYSURF.fill(BACKGROUNDCOLOR)
 
     while True:
         
@@ -130,18 +130,18 @@ def showSandboxScreen():
     """
     
     buttons = []
-    snakesbutton = InputButton(1, WINDOWWIDTH * 2/3, WINDOWHEIGHT * 2/8, 1, 4, True)
+    snakesbutton = InputButton(1, (WINDOWWIDTH * 2/3, WINDOWHEIGHT * 2/8), 1, 4, True)
     buttons.append(snakesbutton)
-    fpsbutton = InputButton(12, WINDOWWIDTH * 2/3, WINDOWHEIGHT * 3/8, 3, 60)
+    fpsbutton = InputButton(12, (WINDOWWIDTH * 2/3, WINDOWHEIGHT * 3/8), 3, 60)
     buttons.append(fpsbutton)
     
 
-    cancelbutton = Button('(e)xit', WINDOWWIDTH * 1/3, WINDOWHEIGHT * 7/8)
-    acceptbutton = Button('(s)tart', WINDOWWIDTH * 2/3, WINDOWHEIGHT * 7/8)
+    cancelbutton = Button('(e)xit', (WINDOWWIDTH * 1/3, WINDOWHEIGHT * 7/8))
+    acceptbutton = Button('(s)tart', (WINDOWWIDTH * 2/3, WINDOWHEIGHT * 7/8))
 
     while True:
     
-        DISPLAYSURF.fill(BACKGROUNDCLR)
+        DISPLAYSURF.fill(BACKGROUNDCOLOR)
         
         drawTitle('Sandbox Mode:')
         drawTitle('Snakes:', WINDOWWIDTH * 1/3, WINDOWHEIGHT * 2/8, MEDIUMTITLE, GOLDENROD, True)
@@ -195,15 +195,15 @@ def showInstructScreen():
         fruitRect = pygame.Rect(x, y, CELLSIZE, CELLSIZE)
         pygame.draw.rect(DISPLAYSURF, color, fruitRect)
     
-    endbutton = Button('(e)xit', WINDOWWIDTH * 3/6, WINDOWHEIGHT * 15/16)
-    nextbutton = Button('(n)ext (->)', WINDOWWIDTH * 5/6, WINDOWHEIGHT * 15/16)
-    prevbutton = Button('(<-) (p)rev', WINDOWWIDTH * 1/6, WINDOWHEIGHT * 15/16)
+    endbutton = Button('(e)xit', (WINDOWWIDTH * 3/6, WINDOWHEIGHT * 15/16))
+    nextbutton = Button('(n)ext (->)', (WINDOWWIDTH * 5/6, WINDOWHEIGHT * 15/16))
+    prevbutton = Button('(<-) (p)rev', (WINDOWWIDTH * 1/6, WINDOWHEIGHT * 15/16))
     
     page = 1
     
     while True:
     
-        DISPLAYSURF.fill(BACKGROUNDCLR)
+        DISPLAYSURF.fill(BACKGROUNDCOLOR)
 
         drawTitle('Snakey Party', WINDOWWIDTH / 2, WINDOWHEIGHT * 1/16, MEDIUMTITLE, GREEN, True)
         drawTitle('Instructions', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/16, MEDIUMTITLE, GREEN, True)
@@ -356,7 +356,7 @@ def getGrid(allsnake, allfruit):
     return grid
     
     
-def drawMessage(text, x=1, y=1, color=MESSAGECLR, center=False):
+def drawMessage(text, x=1, y=1, color=MESSAGECOLOR, center=False):
     """
     Draws message to screen.
     Size scales depending on window width / height
@@ -365,7 +365,7 @@ def drawMessage(text, x=1, y=1, color=MESSAGECLR, center=False):
     """
     size = int (WINDOWWIDTH * WINDOWHEIGHT / 17000)
     font = pygame.font.Font('freesansbold.ttf', size)
-    messageSurf = font.render(text, True, color, BACKGROUNDCLR)
+    messageSurf = font.render(text, True, color, BACKGROUNDCOLOR)
     messageRect = messageSurf.get_rect()
     if center == False:
         messageRect.topleft = (x, y)
@@ -377,7 +377,7 @@ def drawMessage(text, x=1, y=1, color=MESSAGECLR, center=False):
     
 def drawTitle(text, x=1, y=1, size=MEDIUMTITLE, color=GREEN, center=False):
     titleFont = pygame.font.Font('freesansbold.ttf', size)
-    titleSurf = titleFont.render(text, True, color, BACKGROUNDCLR)
+    titleSurf = titleFont.render(text, True, color, BACKGROUNDCOLOR)
     titleRect = titleSurf.get_rect()
     if center == False:
         titleRect.topleft = (x, y)

@@ -23,16 +23,16 @@ def main():
     #DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
     pygame.display.set_caption('Snakey Party')
 
-    arcadebutton = Button('(a)rcade mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 2/8)
-    duelbutton = Button('(d)uel mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 3/8)
-    partybutton = Button('(p)arty mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 4/8)
-    tronybutton = Button('(t)ron-y mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 5/8)
-    sandboxbutton = Button('(s)andbox mode', WINDOWWIDTH / 2, WINDOWHEIGHT * 6/8)
-    instructbutton = Button('(i)nstructions', WINDOWWIDTH / 2, WINDOWHEIGHT * 7/8)
+    arcadebutton = Button('(a)rcade mode', (WINDOWWIDTH / 2, WINDOWHEIGHT * 2/8), K_a) # use range? should be a list of some sort.
+    duelbutton = Button('(d)uel mode', (WINDOWWIDTH / 2, WINDOWHEIGHT * 3/8))
+    partybutton = Button('(p)arty mode', (WINDOWWIDTH / 2, WINDOWHEIGHT * 4/8))
+    tronybutton = Button('(t)ron-y mode', (WINDOWWIDTH / 2, WINDOWHEIGHT * 5/8))
+    sandboxbutton = Button('(s)andbox mode', (WINDOWWIDTH / 2, WINDOWHEIGHT * 6/8))
+    instructbutton = Button('(i)nstructions', (WINDOWWIDTH / 2, WINDOWHEIGHT * 7/8))
 
     while True: ### need to update this
 
-        DISPLAYSURF.fill(BACKGROUNDCLR)
+        DISPLAYSURF.fill(BACKGROUNDCOLOR)
         drawTitle('Snakey Party', WINDOWWIDTH / 2, WINDOWHEIGHT * 1/8, XLARGETITLE, GREEN, True)
         arcadebutton.display()
         duelbutton.display()
@@ -76,7 +76,8 @@ def main():
                 elif instructbutton.pressed(mouse):
                     showInstructScreen()
             elif event.type == KEYDOWN:
-                if event.key == K_a:
+                #if event.key == K_a:
+                if arcadebutton.keypressed(event.key):
                     pygame.event.get()
                     game = GameData()
                     runGame(game, [SNAKEY])
