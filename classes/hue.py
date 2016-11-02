@@ -1,18 +1,16 @@
 
 from phue import Bridge, Light
-
+import config
 
 bridge = None
-LIGHT_ONE = 2
-LIGHT_TWO = 5
+LIGHTS = [config.LIGHT_ONE, config.LIGHT_TWO]
 
 
 def activate(connect=False):
     global bridge
     if bridge is None:
+        bridge = Bridge(config.IP)
         bridge.set_light(LIGHTS, 'on', True)
-
-    bridge = Bridge()
 
     if connect:
         bridge.connect()

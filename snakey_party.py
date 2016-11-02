@@ -6,6 +6,7 @@
 # Includes various Snake AIs and game modes (Arcade, Duel, Party).
 
 import classes.hue
+import config
 import copy
 import pygame
 import random
@@ -41,7 +42,8 @@ def main():
     buttonlist = []
 
     # Set-up hue.
-    light = classes.hue.get_light(classes.hue.LIGHT_ONE)
+    light = classes.hue.get_light(config.LIGHT_ONE)
+    classes.hue.bridge.set_light(config.LIGHT_TWO, 'effect', 'colorloop')
 
     # classic mode
     cbutton = Button('(c)lassic mode', (col_one, row_one), K_c)
@@ -64,8 +66,8 @@ def main():
     pbutton.game = Game(apples=4, speedTrigger=25, easyTrigger=0, bonusFruitTrigger=12, light=light)
     buttonlist.append(pbutton)
     # tron mode
-    tbutton = PartyButton('(t)ron mode', (col_two, row_one), K_t, light=light)
-    tbutton.game = Game(trailing=True)
+    tbutton = PartyButton('(t)ron mode', (col_two, row_one), K_t)
+    tbutton.game = Game(trailing=True, light=light)
     buttonlist.append(tbutton)
     # TBD
     # (col_two, row_two)
