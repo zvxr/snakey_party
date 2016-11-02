@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-import random, pygame, sys
+import classes.hue
+import pygame
+import random
+import sys
+
 from pygame.locals import *
 from const import *
 from methods import *
@@ -36,6 +40,8 @@ class Game:
         self.blueberryDrop = kwargs.get('blueberryDrop', 25)
         self.lemonDrop = kwargs.get('lemonDrop', 100)
         self.eggDrop = kwargs.get('eggDrop', 20)
+        self.light = kwargs.get('light', None)
+        self.currentLight = None
 
 
     def checkSpeedTrigger(self):
@@ -248,16 +254,18 @@ class Game:
             self.updateSlowTimer()
             self.updateCurrentSpeed(FREEZING_POINT)
             self.drawGrid(DARKBLUE)
+            self.changeHue(DARKBLUE)
         else:
             self.updateCurrentSpeed()
             self.drawGrid()
+            self.changeHue(IVORY)
 
         # draw everything else to screen
         for fruit in allfruit:
             fruit.drawFruit()
         for snake in allsnake:
             snake.drawSnake()
-            
+
         # print scores only if snake is scored
         position = 1
         for snake in allsnake:
@@ -267,6 +275,7 @@ class Game:
 
         # if player is dead, print extra messages
         if player == False or player.alive == False:
+            self.changeHue(RED)
             endMessage = 'press (e) to end game early'
             fastMessage = 'press (f) to fast-forward game'
             slowMessage = 'press (s) to slow game'
@@ -275,7 +284,7 @@ class Game:
             drawMessage(slowMessage, WINDOWWIDTH / 2, WINDOWHEIGHT / 20 * 18)
         pygame.display.update()
         FPSCLOCK.tick(self.currentspeed)
-        
+
     def drawGrid(self, color=DARKGRAY):
         """
         Draws grid to screen.
@@ -284,3 +293,8 @@ class Game:
             pygame.draw.line(DISPLAYSURF, color, (x, TOP_BUFFER), (x, WINDOWHEIGHT))
         for y in range(TOP_BUFFER, WINDOWHEIGHT, CELLSIZE): # draw horizontal lines
             pygame.draw.line(DISPLAYSURF, color, (0, y), (WINDOWWIDTH, y))
+
+    def changeHue(self, color=WHITE):
+        if self.light and self.currentLight != color:
+            self.light.xy = classes.hue.rgb_convert(color)
+            self.currentLight = color

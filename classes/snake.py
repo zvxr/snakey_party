@@ -43,7 +43,7 @@ class Snake:
                 self.direction = LEFT
         # egg is just hatched-- for now goes left initially
         else:
-             self.direction = LEFT
+            self.direction = LEFT
         
         self.color = {'red': 0, 'green': 0, 'blue': 0}
         self.updateColor({'red': colorsnake[0], 'green': colorsnake[1], 'blue': colorsnake[2]})

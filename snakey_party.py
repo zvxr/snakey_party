@@ -5,7 +5,12 @@
 # snake size, and other in-game effects.
 # Includes various Snake AIs and game modes (Arcade, Duel, Party).
 
-import copy, random, pygame, sys
+import classes.hue
+import copy
+import pygame
+import random
+import sys
+
 from pygame.locals import *
 from classes.const import *
 from classes.methods import *
@@ -14,10 +19,11 @@ from classes.snake import *
 from classes.fruit import *
 from classes.gamedata import *
 from classes.game import Game
-            
+
 
 def main():
     #global FPSCLOCK, DISPLAYSURF, DEBUG
+    classes.hue.activate()
 
     #pygame.init()
     #FPSCLOCK = pygame.time.Clock()
@@ -33,29 +39,32 @@ def main():
     row_four = WINDOWHEIGHT * 6/8
     row_five = WINDOWHEIGHT * 7/8
     buttonlist = []
-    
+
+    # Set-up hue.
+    light = classes.hue.get_light(classes.hue.LIGHT_ONE)
+
     # classic mode
     cbutton = Button('(c)lassic mode', (col_one, row_one), K_c)
-    cbutton.game = Game()
+    cbutton.game = Game(light=light)
     buttonlist.append(cbutton)
     # arcade mode
     abutton = Button('(a)rcade mode', (col_one, row_two), K_a)
-    abutton.game = Game(apples=20)
+    abutton.game = Game(apples=20, light=light)
     buttonlist.append(abutton)
     # duel mode
     dbutton = DuelButton('(d)uel mode', (col_one, row_three), K_d)
-    dbutton.game = Game(apples=2, eggDrop=12, speedTrigger=10, easyTrigger=9)
+    dbutton.game = Game(apples=2, eggDrop=12, speedTrigger=10, easyTrigger=9, light=light)
     buttonlist.append(dbutton)
     # fast duel mode
     fbutton = DuelButton('(f)ast duel', (col_one, row_four), K_f)
-    fbutton.game = Game(apples=2, speedTrigger=10, easyTrigger=19, basespeed=20, bonusFruitTrigger=7, eggDrop=10, orangeDrop=4)
+    fbutton.game = Game(apples=2, speedTrigger=10, easyTrigger=19, basespeed=20, bonusFruitTrigger=7, eggDrop=10, orangeDrop=4, light=light)
     buttonlist.append(fbutton)
     # party mode
     pbutton = PartyButton('(p)arty mode', (col_one, row_five), K_p)
-    pbutton.game = Game(apples=4, speedTrigger=25, easyTrigger=0, bonusFruitTrigger=12)
+    pbutton.game = Game(apples=4, speedTrigger=25, easyTrigger=0, bonusFruitTrigger=12, light=light)
     buttonlist.append(pbutton)
     # tron mode
-    tbutton = PartyButton('(t)ron mode', (col_two, row_one), K_t)
+    tbutton = PartyButton('(t)ron mode', (col_two, row_one), K_t, light=light)
     tbutton.game = Game(trailing=True)
     buttonlist.append(tbutton)
     # TBD
@@ -260,10 +269,12 @@ def rungame(game, players=[]):
             if snake.multipliertimer > 0:
                 snake.multipliertimer = snake.multipliertimer - 1
                 snake.setColorBorderCurrent(PURPLE)
+                game.changeHue(PURPLE)
             else:
                 # make sure multiplier is 1, color is normal
                 snake.multiplier = 1
                 snake.resetColorBorder()
+                game.changeHue(IVORY)
 
         # update timers on fruits, remove if necessary
         for fruit in allfruit:
@@ -273,11 +284,10 @@ def rungame(game, players=[]):
                     if fruit.__class__ == Egg:
                         fruit.isHatched(allsnake)
                     allfruit.remove(fruit)
-                    
+
         # draw everything to screen
         game.drawScreen(allfruit, allsnake, player)
 
 
 if __name__ == '__main__':
     main()
-
