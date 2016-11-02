@@ -9,7 +9,7 @@ LIGHTS = [config.LIGHT_ONE, config.LIGHT_TWO]
 def activate(connect=False):
     global bridge
     if bridge is None:
-        bridge = Bridge(config.IP)
+        bridge = Bridge(config.IP_ADDRESS)
         bridge.set_light(LIGHTS, 'on', True)
 
     if connect:
